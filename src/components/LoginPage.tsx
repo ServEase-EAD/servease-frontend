@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -50,11 +51,13 @@ const LoginPage: React.FC = () => {
         throw new Error("Please enter a valid email address");
       }
 
-      // TODO: Replace with actual login API call
-      console.log("Login attempt:", formData);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await axios.post(
+        "http://localhost:8001/api/v1/auth/login/",
+        formData
+      );
+      console.log("Login response:", response.data);
+      localStorage.setItem("token", response.data.tokens.access);
+      localStorage.setItem("userRole", response.data.user_role);
 
       // Handle successful login here (e.g., redirect, store token, etc.)
       alert("Login successful!");
