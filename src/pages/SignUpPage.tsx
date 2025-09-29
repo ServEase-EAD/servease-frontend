@@ -19,10 +19,11 @@ import {
   Person,
   Phone,
 } from "@mui/icons-material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const SignUpPage: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -138,6 +139,7 @@ const SignUpPage: React.FC = () => {
       );
       console.log("Sign up response:", response.data);
       alert("Account created successfully!");
+      navigate("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
     } finally {

@@ -12,10 +12,11 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -59,8 +60,8 @@ const LoginPage: React.FC = () => {
       localStorage.setItem("token", response.data.tokens.access);
       localStorage.setItem("userRole", response.data.user_role);
 
-      // Handle successful login here (e.g., redirect, store token, etc.)
-      alert("Login successful!");
+      // Redirect to root after login
+      navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

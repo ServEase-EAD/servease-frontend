@@ -4,19 +4,34 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import LoginPage from "./components/LoginPage";
-import SignUpPage from "./components/SignUpPage";
-import CustomerDashboard from "./components/CustomerDashboard";
-import EmployeeDashboard from "./components/EmployeeDashboard";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 import "./App.css";
 
 // Temporary Home component until you create a proper one
-const HomePage = () => (
-  <div>
-    <h1>Welcome to ServEase</h1>
-    <p>Home page content goes here</p>
-  </div>
-);
+import React from "react";
+
+const HomePage: React.FC = () => {
+  const token = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRole");
+
+  if (token && userRole === "customer") {
+    return <CustomerDashboard />;
+  }
+  if (token && userRole === "employee") {
+    return <EmployeeDashboard />;
+  }
+  // Default home page for unauthenticated users
+  return (
+    <div>
+      <h1>Welcome to ServEase</h1>
+      <p>Home page content goes here</p>
+    </div>
+  );
+};
 
 function App() {
   return (
@@ -25,8 +40,22 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-        <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+        <Route
+          path="/customer-dashboard"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee-dashboard"
+          element={
+            <ProtectedRoute requiredRole="employee">
+              <EmployeeDashboard />
+            </ProtectedRoute>
+          }
+        />
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
