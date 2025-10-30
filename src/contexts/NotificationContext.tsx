@@ -25,7 +25,7 @@ export const NotificationContext = createContext<
 
 interface NotificationProviderProps {
   children: ReactNode;
-  userId: number | null;
+  userId: string | number | null;  // Support both UUID string and number
 }
 
 export function NotificationProvider({

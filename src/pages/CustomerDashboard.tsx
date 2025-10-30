@@ -16,10 +16,12 @@ import {
 import { Link } from "react-router-dom";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { NotificationBellMUI } from "../components/notifications";
+import { getUserFromToken } from "../services/authService";
 
 const CustomerDashboard: React.FC = () => {
-  // TODO: Get actual user ID from auth context
-  const userId = 1;
+  // Get actual user ID from JWT token
+  const user = getUserFromToken();
+  const userId = user?.id || null;
 
   return (
     <NotificationProvider userId={userId}>

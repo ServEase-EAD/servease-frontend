@@ -20,7 +20,7 @@ type ConnectionStatusCallback = (isConnected: boolean) => void;
 
 class NotificationService {
   private ws: WebSocket | null = null;
-  private userId: number | null = null;
+  private userId: string | number | null = null;  // Support both UUID and number
   private reconnectTimeout: number | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -32,7 +32,7 @@ class NotificationService {
   /**
    * Connect to WebSocket for real-time notifications
    */
-  connect(userId: number): void {
+  connect(userId: string | number): void {  // Accept both UUID string and number
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log("WebSocket already connected");
       return;
@@ -53,8 +53,17 @@ class NotificationService {
     }
 
     try {
-      const wsUrl = `${WS_BASE_URL}/ws/notifications/${this.userId}/`;
-      console.log(`Connecting to WebSocket: ${wsUrl}`);
+      // Get JWT token from localStorage (try both possible keys)
+      const token = localStorage.getItem("access_token") || localStorage.getItem("accessToken");
+      
+      if (!token) {
+        console.error("Cannot connect: No authentication token found");
+        return;
+      }
+      
+      // Add token as query parameter for WebSocket authentication
+      const wsUrl = `${WS_BASE_URL}/ws/notifications/${this.userId}/?token=${token}`;
+      console.log(`Connecting to WebSocket for user ${this.userId} (authenticated)`);
 
       this.ws = new WebSocket(wsUrl);
 
@@ -198,7 +207,7 @@ class NotificationService {
    * Fetch notifications from API
    */
   async getNotifications(
-    userId: number,
+    userId: string | number,  // Support both UUID and number
     page = 1,
     pageSize = 20
   ): Promise<NotificationResponse> {
@@ -221,7 +230,7 @@ class NotificationService {
   /**
    * Get unread notification count
    */
-  async getUnreadCount(userId: number): Promise<number> {
+  async getUnreadCount(userId: string | number): Promise<number> {  // Support both UUID and number
     try {
       const data = await this.getNotifications(userId, 1, 1);
       // Filter unread from results or use count if backend provides it
