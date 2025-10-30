@@ -1,12 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Typography,
   Card,
   CardContent,
-  Grid,
-  TextField,
-  Button,
+  Typography,
   Table,
   TableBody,
   TableCell,
@@ -14,106 +11,236 @@ import {
   TableHead,
   TableRow,
   Paper,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Avatar,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Grid,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import SearchIcon from '@mui/icons-material/Search';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+
+// Mock customer data
+const mockCustomers = [
+  {
+    id: 1,
+    name: 'John Doe',
+    email: 'john.doe@email.com',
+    phone: '+94 77 123 4567',
+    location: 'Colombo 7',
+    totalServices: 5,
+    lastService: '2025-10-15',
+    status: 'Active',
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    email: 'jane.smith@email.com',
+    phone: '+94 76 234 5678',
+    location: 'Nugegoda',
+    totalServices: 3,
+    lastService: '2025-10-20',
+    status: 'Active',
+  },
+  {
+    id: 3,
+    name: 'Mike Johnson',
+    email: 'mike.j@email.com',
+    phone: '+94 71 345 6789',
+    location: 'Rajagiriya',
+    totalServices: 1,
+    lastService: '2025-10-25',
+    status: 'Inactive',
+  },
+];
 
 const CustomerManagement: React.FC = () => {
-  // Mock data - replace with actual API data
-  const customers = [
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      phone: '+1234567890',
-      address: '123 Main St',
-      lastService: '2025-10-25',
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      phone: '+0987654321',
-      address: '456 Oak Ave',
-      lastService: '2025-10-28',
-    },
-    // Add more mock customers as needed
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleViewCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+  };
+
+  const filteredCustomers = mockCustomers.filter(customer =>
+    Object.values(customer).some(value =>
+      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Customer Management
-      </Typography>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Summary Cards */}
+      <Box sx={{ 
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 3,
+        mb: 4
+      }}>
+        {[
+          { label: 'Total Customers', value: '45', color: 'primary.main' },
+          { label: 'Active Customers', value: '38', color: 'success.main' },
+          { label: 'New This Month', value: '12', color: 'info.main' },
+          { label: 'Average Services', value: '3.5', color: 'warning.main' }
+        ].map((stat, index) => (
+          <Box key={index} sx={{ flex: { xs: '0 0 calc(50% - 12px)', sm: '0 0 calc(25% - 18px)' } }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h4" sx={{ color: stat.color, textAlign: 'center', fontWeight: 'bold' }}>
+                  {stat.value}
+                </Typography>
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                  {stat.label}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        ))}
+      </Box>
 
-      {/* Search and Filter Section */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                placeholder="Search customers..."
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                <Button variant="contained" color="primary">
-                  Add New Customer
-                </Button>
-                <Button variant="outlined">
-                  Export Data
-                </Button>
+      {/* Search Bar */}
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search customers..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      {/* Customers Table */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Customer</TableCell>
+              <TableCell>Contact</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>Total Services</TableCell>
+              <TableCell>Last Service</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredCustomers.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar>{customer.name.charAt(0)}</Avatar>
+                    <Box>
+                      <Typography variant="subtitle2">{customer.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">{customer.email}</Typography>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>{customer.phone}</TableCell>
+                <TableCell>{customer.location}</TableCell>
+                <TableCell>{customer.totalServices}</TableCell>
+                <TableCell>{customer.lastService}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={customer.status}
+                    color={customer.status === 'Active' ? 'success' : 'default'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <IconButton
+                    color="primary"
+                    size="small"
+                    onClick={() => handleViewCustomer(customer)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Customer Details Dialog */}
+      <Dialog
+        open={isDialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        {selectedCustomer && (
+          <>
+            <DialogTitle>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ width: 56, height: 56 }}>{selectedCustomer.name.charAt(0)}</Avatar>
+                <Box>
+                  <Typography variant="h6">{selectedCustomer.name}</Typography>
+                  <Chip
+                    label={selectedCustomer.status}
+                    color={selectedCustomer.status === 'Active' ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
               </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Customer List */}
-      <Card>
-        <CardContent>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Address</TableCell>
-                  <TableCell>Last Service</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>{customer.id}</TableCell>
-                    <TableCell>{customer.name}</TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.address}</TableCell>
-                    <TableCell>{customer.lastService}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button size="small" variant="outlined" color="primary">
-                          Edit
-                        </Button>
-                        <Button size="small" variant="outlined" color="error">
-                          Delete
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
+            </DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EmailIcon color="action" />
+                  <Typography>{selectedCustomer.email}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PhoneIcon color="action" />
+                  <Typography>{selectedCustomer.phone}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LocationOnIcon color="action" />
+                  <Typography>{selectedCustomer.location}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Card variant="outlined" sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 8px)' } }}>
+                    <CardContent>
+                      <Typography color="text.secondary">Total Services</Typography>
+                      <Typography variant="h6">{selectedCustomer.totalServices}</Typography>
+                    </CardContent>
+                  </Card>
+                  <Card variant="outlined" sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 8px)' } }}>
+                    <CardContent>
+                      <Typography color="text.secondary">Last Service</Typography>
+                      <Typography variant="h6">{selectedCustomer.lastService}</Typography>
+                    </CardContent>
+                  </Card>
+                </Box>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 };

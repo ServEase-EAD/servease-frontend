@@ -4,15 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  Grid,
-  styled,
 } from '@mui/material';
-
-const StyledGrid = styled(Grid)(({ theme }) => ({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: theme.spacing(3),
-}));
 import {
   BarChart,
   Bar,
@@ -46,14 +38,19 @@ const ReportsAnalytics: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Summary Statistics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: 3,
+        mb: 4,
+      }}>
         {[
           { label: 'Total Tasks', value: '100', color: 'text.primary' },
           { label: 'Completed', value: '45', color: '#00C49F' },
           { label: 'In Progress', value: '30', color: '#0088FE' },
           { label: 'Pending', value: '25', color: '#FFBB28' }
         ].map((stat, index) => (
-          <Grid component="div" item xs={6} sm={3} key={index}>
+          <Box key={index} sx={{ flex: { xs: '0 0 calc(50% - 12px)', sm: '0 0 calc(25% - 18px)' } }}>
             <Card sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h4" sx={{ color: stat.color, fontWeight: 'bold' }}>
                 {stat.value}
@@ -62,14 +59,14 @@ const ReportsAnalytics: React.FC = () => {
                 {stat.label}
               </Typography>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       {/* Charts */}
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
         {/* Service Performance Chart */}
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(66.666% - 12px)' } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -90,10 +87,10 @@ const ReportsAnalytics: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Task Status Distribution */}
-        <Grid item xs={12} md={4}>
+        <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 calc(33.333% - 12px)' } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -109,7 +106,7 @@ const ReportsAnalytics: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={(entry: any) => `${entry.name} ${((entry.value / 100) * 100).toFixed(0)}%`}
                     >
                       {statusData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -122,8 +119,8 @@ const ReportsAnalytics: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };
