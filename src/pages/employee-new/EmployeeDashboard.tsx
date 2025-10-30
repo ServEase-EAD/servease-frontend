@@ -21,7 +21,7 @@ import {
   Assignment as TaskIcon,
   People as CustomerIcon,
   Build as ServiceIcon,
-  Assessment as ReportIcon,
+  AccessTime as TimeLogIcon,
   ExitToApp as LogoutIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
@@ -31,7 +31,7 @@ import DashboardContent from "./DashboardContent";
 import ViewAssignedTasks from "./ViewAssignedTasks";
 import CustomerManagement from "./CustomerManagement";
 import ServiceRequests from "./ServiceRequests";
-import ReportsAnalytics from "./ReportsAnalytics";
+import TimeLogs from "./TimeLogs";
 
 const DRAWER_WIDTH = 280;
 
@@ -50,7 +50,7 @@ const EmployeeDashboard: React.FC = () => {
     { text: "View Assigned Tasks", icon: <TaskIcon />, value: "tasks" },
     { text: "Customer Management", icon: <CustomerIcon />, value: "customers" },
     { text: "Service Requests", icon: <ServiceIcon />, value: "services" },
-    { text: "Reports & Analytics", icon: <ReportIcon />, value: "reports" },
+    { text: "Time Logs", icon: <TimeLogIcon />, value: "timelogs" },
   ];
 
   const renderContent = () => {
@@ -63,8 +63,8 @@ const EmployeeDashboard: React.FC = () => {
         return <CustomerManagement />;
       case "services":
         return <ServiceRequests />;
-      case "reports":
-        return <ReportsAnalytics />;
+      case "timelogs":
+        return <TimeLogs />;
       default:
         return <DashboardContent />;
     }
