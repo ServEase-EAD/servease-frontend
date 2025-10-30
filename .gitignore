@@ -129,3 +129,5 @@ test-results.xml
 # Build artifacts
 build/
 out/
+
+.early.coverage
