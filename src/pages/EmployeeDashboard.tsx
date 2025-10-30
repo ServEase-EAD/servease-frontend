@@ -14,13 +14,13 @@ import {
   Assignment,
   People,
   Build,
-  Assessment,
+  AccessTime,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import ViewAssignedTasks from "./employee-new/ViewAssignedTasks";
 import CustomerManagement from "./employee-new/CustomerManagement";
 import ServiceRequests from "./employee-new/ServiceRequests";
-import ReportsAnalytics from "./employee-new/ReportsAnalytics";
+import TimeLogs from "./employee-new/TimeLogs";
 
 const EmployeeDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("tasks");
@@ -29,7 +29,7 @@ const EmployeeDashboard: React.FC = () => {
     { label: 'View Assigned Tasks', value: 'tasks', icon: Assignment },
     { label: 'Customer Management', value: 'customers', icon: People },
     { label: 'Service Requests', value: 'services', icon: Build },
-    { label: 'Reports & Analytics', value: 'reports', icon: Assessment }
+    { label: 'Time Logs', value: 'timelogs', icon: AccessTime }
   ];
 
   const renderContent = () => {
@@ -40,8 +40,8 @@ const EmployeeDashboard: React.FC = () => {
         return <CustomerManagement />;
       case "services":
         return <ServiceRequests />;
-      case "reports":
-        return <ReportsAnalytics />;
+      case "timelogs":
+        return <TimeLogs />;
       default:
         return <ViewAssignedTasks />;
     }
