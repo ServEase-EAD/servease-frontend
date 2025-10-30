@@ -13,7 +13,9 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import apiClient, { handleApiError } from "../services/apiService";
+import { API_ENDPOINTS } from "../config/api.config";
+import { saveTokens, getUserRole } from "../services/authService";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -52,18 +54,29 @@ const LoginPage: React.FC = () => {
         throw new Error("Please enter a valid email address");
       }
 
-      const response = await axios.post(
-        "http://localhost:8001/api/v1/auth/login/",
-        formData
-      );
-      console.log("Login response:", response.data);
-      localStorage.setItem("token", response.data.tokens.access);
-      localStorage.setItem("userRole", response.data.user_role);
+      // Make API call using centralized API client
+      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, formData);
 
-      // Redirect to root after login
-      navigate("/");
+      // Save tokens to localStorage
+      const { tokens } = response.data;
+      saveTokens(tokens.access, tokens.refresh);
+
+      // Get user role from JWT token
+      const userRole = getUserRole();
+      console.log("Login successful. User role:", userRole);
+
+      // Redirect based on user role
+      if (userRole === "customer") {
+        navigate("/customer-dashboard");
+      } else if (userRole === "employee") {
+        navigate("/employee-dashboard");
+      } else if (userRole === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(handleApiError(err));
     } finally {
       setLoading(false);
     }
