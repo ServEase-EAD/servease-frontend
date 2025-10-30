@@ -24,13 +24,8 @@ const HomePage: React.FC = () => {
   if (token && userRole === "employee") {
     return <EmployeeDashboard />;
   }
-  // Default home page for unauthenticated users
-  return (
-    <div>
-      <h1>Welcome to ServEase</h1>
-      <p>Home page content goes here</p>
-    </div>
-  );
+  // Redirect to login page for unauthenticated users
+  return <Navigate to="/login" replace />;
 };
 
 function App() {
