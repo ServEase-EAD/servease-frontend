@@ -10,7 +10,7 @@ import {
   updateCustomerProfile,
   checkCustomerProfileExists,
 } from "../services/customerService";
-import { getUserFromToken } from "../services/authService";
+import { getUserFromToken, getAccessToken, isTokenExpired, isAuthenticated } from "../services/authService";
 
 interface UseCustomerReturn {
   customer: Customer | null;
@@ -22,6 +22,7 @@ interface UseCustomerReturn {
   updateProfile: (data: CustomerUpdateRequest) => Promise<void>;
   refreshProfile: () => Promise<void>;
   checkProfileExists: () => Promise<void>;
+  retryConnection: () => Promise<void>;
 }
 
 export const useCustomer = (): UseCustomerReturn => {
@@ -37,17 +38,59 @@ export const useCustomer = (): UseCustomerReturn => {
    * Load customer profile
    */
   const loadProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user found, skipping profile load");
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
+      console.log("Loading customer profile with auth data integration");
       const profile = await getCurrentCustomerProfile();
+      console.log("Profile loaded successfully with auth data merged:", {
+        profile_id: profile.id,
+        email: profile.email,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        full_name: profile.full_name,
+        phone_number: profile.phone_number
+      });
+      
+      // Note: API now returns user_id as 'id' field due to logical consolidation
+      console.log("Profile ID (should be user_id):", profile.id);
+      console.log("User ID from auth:", user.id);
+      console.log("IDs match:", profile.id === user.id);
+      console.log("Auth data integration:", {
+        has_email: !!profile.email,
+        has_first_name: !!profile.first_name,
+        has_last_name: !!profile.last_name,
+        has_phone: !!profile.phone_number
+      });
+      
       setCustomer(profile);
       setHasProfile(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load profile");
+      console.error("Error loading profile:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to load profile";
+      
+      // If it's a network error, provide better context
+      if (errorMessage.includes("No response from server")) {
+        setError("Unable to connect to customer service. Please check your connection and try again.");
+      } else if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+        setError("Authentication required. Please log in again.");
+        // Clear tokens and redirect to login
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+        return;
+      } else if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+        setError("Customer profile not found. Please create your profile.");
+        setHasProfile(false);
+      } else {
+        setError(errorMessage);
+      }
       setHasProfile(false);
     } finally {
       setLoading(false);
@@ -58,22 +101,69 @@ export const useCustomer = (): UseCustomerReturn => {
    * Check if customer profile exists
    */
   const checkProfileExists = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user found, skipping profile check");
+      return;
+    }
+
+    // Check if user is authenticated with valid token
+    if (!isAuthenticated()) {
+      console.log("User not authenticated or token expired");
+      setError("Your session has expired. Please log in again.");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      window.location.href = "/login";
+      return;
+    }
+
+    const token = getAccessToken();
+    console.log("Token details:", {
+      hasToken: !!token,
+      isExpired: token ? isTokenExpired(token) : "no token",
+      tokenLength: token?.length || 0
+    });
 
     setProfileCheckLoading(true);
     setError(null);
 
     try {
+      console.log("Checking profile exists for user:", user.id);
       const result = await checkCustomerProfileExists(user.id);
+      console.log("Profile check result:", result);
       setHasProfile(result.profile_exists);
 
       if (result.profile_exists) {
         // Load the profile data
+        console.log("Profile exists, loading profile data");
         await loadProfile();
+      } else {
+        console.log("No profile found for user");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to check profile");
-      setHasProfile(false);
+      console.error("Error checking profile exists:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to check profile";
+      
+      // If it's a network error, provide better context but don't assume no profile exists
+      if (errorMessage.includes("No response from server") || errorMessage.includes("Network Error")) {
+        setError("Unable to connect to customer service. Please check your connection and try again.");
+        // Don't set hasProfile to false on network errors - we don't know if profile exists
+        console.log("Network error occurred, not changing hasProfile state");
+      } else if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+        setError("Authentication required. Please log in again.");
+        // Clear tokens and redirect to login
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+        return;
+      } else if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+        // Only set hasProfile to false for legitimate 404 responses
+        setError("Customer profile not found. Please create your profile.");
+        setHasProfile(false);
+      } else {
+        setError(errorMessage);
+        // For other errors, don't assume profile doesn't exist
+        console.log("Unknown error occurred, not changing hasProfile state");
+      }
     } finally {
       setProfileCheckLoading(false);
     }
@@ -123,6 +213,15 @@ export const useCustomer = (): UseCustomerReturn => {
     await loadProfile();
   };
 
+  /**
+   * Retry connection - attempt to check profile again
+   */
+  const retryConnection = async () => {
+    console.log("Retrying connection...");
+    setError(null);
+    await checkProfileExists();
+  };
+
   // Initial profile check on mount
   useEffect(() => {
     if (user) {
@@ -140,5 +239,6 @@ export const useCustomer = (): UseCustomerReturn => {
     updateProfile,
     refreshProfile,
     checkProfileExists,
+    retryConnection,
   };
 };

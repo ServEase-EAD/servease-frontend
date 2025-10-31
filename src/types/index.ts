@@ -59,8 +59,8 @@ export interface ApiError {
 
 // Customer related types
 export interface Customer {
-  id: string;
-  user_id: string;
+  id: string; // Customer service internal ID (should be same as user_id)
+  user_id: string; // Primary ID from authentication service (the real unique identifier)
   // User data from auth service
   email?: string;
   first_name?: string;
