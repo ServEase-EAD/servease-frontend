@@ -11,16 +11,15 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 
 interface Task {
-  id: number;
-  taskName: string;
-  customer: string;
-  location: string;
-  date: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
-  priority: 'High' | 'Medium' | 'Low';
-  duration?: string;
-  serviceType?: string;
-  vehicleDetails?: string;
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  appointment_type: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  status: string;
+  customer_name: string;
+  vehicle_details: string;
 }
 
 interface TaskDetailsDialogProps {
@@ -74,30 +73,53 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, ta
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            {task.taskName}
+            {task.appointment_type}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {task.vehicleDetails || `${task.serviceType || 'Service'} Request`}
+            Service Request
           </Typography>
         </Box>
 
         <Box sx={{ display: 'grid', gap: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">Duration</Typography>
+            <Typography variant="subtitle2">Customer ID</Typography>
             <Typography variant="body1" fontWeight="medium">
-              {task.duration || '2.5h'}
+              {task.customer_id}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="subtitle2">Customer Name</Typography>
+            <Typography variant="body1">
+              {task.customer_name}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="subtitle2">Vehicle ID</Typography>
+            <Typography variant="body1">
+              {task.vehicle_id}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="subtitle2">Vehicle Details</Typography>
+            <Typography variant="body1">
+              {task.vehicle_details}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="subtitle2">Date</Typography>
             <Typography variant="body1">
-              {new Date(task.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {task.scheduled_date}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="subtitle2">Time</Typography>
+            <Typography variant="body1">
+              {task.scheduled_time}
             </Typography>
           </Box>
 
@@ -108,30 +130,6 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, ta
               color={getStatusColor(task.status) as any}
               size="small"
             />
-          </Box>
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">Customer</Typography>
-            <Typography variant="body1">{task.customer}</Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">Location</Typography>
-            <Typography variant="body1">{task.location}</Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">Priority</Typography>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                color: task.priority === 'High' ? 'error.main' : 
-                       task.priority === 'Medium' ? 'warning.main' : 
-                       'success.main'
-              }}
-            >
-              {task.priority}
-            </Typography>
           </Box>
         </Box>
       </DialogContent>
