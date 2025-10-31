@@ -13,13 +13,17 @@ import type { Customer, CustomerCreateRequest, CustomerUpdateRequest } from "../
  */
 export const getCurrentCustomerProfile = async (): Promise<Customer> => {
   try {
-    // Fetch customer profile from customer service
+    // First, try to get customer profile from customer service
+    console.log("Fetching customer profile from customer service...");
     const customerResponse = await apiClient.get<Customer>(API_ENDPOINTS.CUSTOMERS.PROFILE);
     const customerData = customerResponse.data;
+    console.log("Customer profile fetched successfully:", customerData);
 
-    // Fetch auth profile data to get fresh user details
+    // Try to fetch auth profile data to get fresh user details
     try {
+      console.log("Fetching auth profile data...");
       const authProfile = await getUserProfile();
+      console.log("Auth profile fetched successfully:", authProfile);
       
       // Merge auth data with customer data
       const mergedProfile = {
@@ -45,9 +49,11 @@ export const getCurrentCustomerProfile = async (): Promise<Customer> => {
       return mergedProfile;
     } catch (authError) {
       console.warn("Failed to fetch auth profile, using customer data only:", authError);
+      // Return customer data even if auth fails
       return customerData;
     }
   } catch (error) {
+    console.error("Error fetching customer profile:", error);
     throw new Error(handleApiError(error));
   }
 };
