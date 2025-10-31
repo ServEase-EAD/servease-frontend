@@ -28,7 +28,7 @@ import { Link } from "react-router-dom";
 
 // Import components
 import DashboardContent from "./DashboardContent";
-import ViewAssignedTasks from "./ViewAssignedTasks";
+import CustomerRequests from "./CustomerRequests";
 import CustomerManagement from "./CustomerManagement";
 import ServiceRequests from "./ServiceRequests";
 import ReportsAnalytics from "./ReportsAnalytics";
@@ -47,7 +47,7 @@ const EmployeeDashboard: React.FC = () => {
 
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, value: "dashboard" },
-    { text: "View Assigned Tasks", icon: <TaskIcon />, value: "tasks" },
+    { text: "Customer Requests", icon: <TaskIcon />, value: "tasks" },
     { text: "Customer Management", icon: <CustomerIcon />, value: "customers" },
     { text: "Service Requests", icon: <ServiceIcon />, value: "services" },
     { text: "Reports & Analytics", icon: <ReportIcon />, value: "reports" },
@@ -58,7 +58,7 @@ const EmployeeDashboard: React.FC = () => {
       case "dashboard":
         return <DashboardContent />;
       case "tasks":
-        return <ViewAssignedTasks />;
+        return <CustomerRequests />;
       case "customers":
         return <CustomerManagement />;
       case "services":
