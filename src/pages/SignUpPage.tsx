@@ -134,7 +134,7 @@ const SignUpPage: React.FC = () => {
       };
 
       const response = await axios.post(
-        "http://localhost:8001/api/v1/auth/register/",
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/register/`,
         payload
       );
       console.log("Sign up response:", response.data);
