@@ -24,6 +24,7 @@ import {
   Toolbar,
   IconButton,
   Divider,
+  Tooltip,
 } from "@mui/material";
 import {
   Person,
@@ -147,10 +148,10 @@ const CustomerDashboard: React.FC = () => {
 
   // Sidebar menu items
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
-    { id: "appointments", label: "Service", icon: <EventIcon /> },
-    { id: "projects", label: "Projects", icon: <ProjectIcon /> },
-    { id: "profile", label: "Profile", icon: <AccountCircle /> },
+    { id: "dashboard", label: "Dashboard", icon: <DashboardIcon />, requiresProfile: true },
+    { id: "appointments", label: "Service", icon: <EventIcon />, requiresProfile: true },
+    { id: "projects", label: "Projects", icon: <ProjectIcon />, requiresProfile: true },
+    { id: "profile", label: "Profile", icon: <AccountCircle />, requiresProfile: false },
   ];
 
   const toggleSidebar = () => {
@@ -158,6 +159,11 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleTabChange = (tabId: string) => {
+    // Prevent navigation to profile-required sections if no profile exists
+    const menuItem = menuItems.find(item => item.id === tabId);
+    if (menuItem?.requiresProfile && !hasProfile) {
+      return; // Don't allow navigation
+    }
     setActiveTab(tabId);
     setSidebarOpen(false); // Close sidebar on mobile after selection
   };
@@ -592,32 +598,49 @@ const CustomerDashboard: React.FC = () => {
 
           {/* Navigation Menu */}
           <List sx={{ pt: 2 }}>
-            {menuItems.map((item) => (
-              <ListItem key={item.id} disablePadding>
-                <ListItemButton
-                  onClick={() => handleTabChange(item.id)}
-                  sx={{
-                    mx: 2,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
-                    "&:hover": {
-                      backgroundColor: "rgba(255,255,255,0.1)",
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontWeight: activeTab === item.id ? "bold" : "normal",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {menuItems.map((item) => {
+              const isDisabled = item.requiresProfile && !hasProfile;
+              return (
+                <ListItem key={item.id} disablePadding>
+                  <Tooltip 
+                    title={isDisabled ? "Complete your profile to access this section" : ""} 
+                    placement="right"
+                    arrow
+                  >
+                    <Box sx={{ width: "100%" }}>
+                      <ListItemButton
+                        onClick={() => handleTabChange(item.id)}
+                        disabled={isDisabled}
+                        sx={{
+                          mx: 2,
+                          mb: 1,
+                          borderRadius: 1,
+                          backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
+                          opacity: isDisabled ? 0.5 : 1,
+                          cursor: isDisabled ? "not-allowed" : "pointer",
+                          "&:hover": {
+                            backgroundColor: isDisabled ? "transparent" : "rgba(255,255,255,0.1)",
+                          },
+                          "&.Mui-disabled": {
+                            opacity: 0.5,
+                          },
+                        }}
+                      >
+                        <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            fontWeight: activeTab === item.id ? "bold" : "normal",
+                          }}
+                        />
+                      </ListItemButton>
+                    </Box>
+                  </Tooltip>
+                </ListItem>
+              );
+            })}
           </List>
 
           <Divider sx={{ borderColor: "rgba(255,255,255,0.2)", mx: 2, my: 2 }} />
@@ -809,32 +832,42 @@ const CustomerDashboard: React.FC = () => {
 
             {/* No Profile State - Only show if we successfully checked and confirmed no profile exists */}
             {!profileCheckLoading && !hasProfile && !error && (
-              <Card elevation={3} sx={{ mb: 3 }}>
-                <CardContent sx={{ p: 4, textAlign: "center" }}>
-                  <Warning sx={{ fontSize: 60, color: "warning.main", mb: 2 }} />
-                  <Typography variant="h5" gutterBottom>
-                    Complete Your Profile
+              <>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom fontWeight="bold">
+                    Profile Setup Required
                   </Typography>
-                  <Typography variant="body1" color="text.secondary" paragraph>
-                    To get started with ServEase, please create your customer profile.
-                    This will help us provide you with personalized service.
+                  <Typography variant="body2">
+                    Some sections are currently locked. Complete your profile to unlock all features including Service appointments and Projects.
                   </Typography>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={<Add />}
-                    onClick={openCreateForm}
-                    sx={{
-                      background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-                      "&:hover": {
-                        background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-                      },
-                    }}
-                  >
-                    Create Profile
-                  </Button>
-                </CardContent>
-              </Card>
+                </Alert>
+                <Card elevation={3} sx={{ mb: 3 }}>
+                  <CardContent sx={{ p: 4, textAlign: "center" }}>
+                    <Warning sx={{ fontSize: 60, color: "warning.main", mb: 2 }} />
+                    <Typography variant="h5" gutterBottom>
+                      Complete Your Profile
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" paragraph>
+                      To get started with ServEase, please create your customer profile.
+                      This will help us provide you with personalized service.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      startIcon={<Add />}
+                      onClick={openCreateForm}
+                      sx={{
+                        background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
+                        "&:hover": {
+                          background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
+                        },
+                      }}
+                    >
+                      Create Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {/* Tab Content */}
@@ -886,32 +919,52 @@ const CustomerDashboard: React.FC = () => {
           </Box>
 
           <List sx={{ pt: 2 }}>
-            {menuItems.map((item) => (
-              <ListItem key={item.id} disablePadding>
-                <ListItemButton
-                  onClick={() => handleTabChange(item.id)}
-                  sx={{
-                    mx: 2,
-                    mb: 1,
-                    borderRadius: 1,
-                    backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
-                    "&:hover": {
-                      backgroundColor: "rgba(255,255,255,0.1)",
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontWeight: activeTab === item.id ? "bold" : "normal",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {menuItems.map((item) => {
+              const isDisabled = item.requiresProfile && !hasProfile;
+              return (
+                <ListItem key={item.id} disablePadding>
+                  <Tooltip 
+                    title={isDisabled ? "Complete your profile to access this section" : ""} 
+                    placement="right"
+                    arrow
+                  >
+                    <Box sx={{ width: "100%" }}>
+                      <ListItemButton
+                        onClick={() => handleTabChange(item.id)}
+                        disabled={isDisabled}
+                        sx={{
+                          mx: 2,
+                          mb: 1,
+                          borderRadius: 1,
+                          backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
+                          opacity: isDisabled ? 0.5 : 1,
+                          cursor: isDisabled ? "not-allowed" : "pointer",
+                          "&:hover": {
+                            backgroundColor: isDisabled ? "transparent" : "rgba(255,255,255,0.1)",
+                          },
+                          "&.Mui-disabled": {
+                            opacity: 0.5,
+                          },
+                        }}
+                      >
+                        <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            fontWeight: activeTab === item.id ? "bold" : "normal",
+                          }}
+                        />
+                        {isDisabled && (
+                          <Warning sx={{ fontSize: 18, ml: 1, opacity: 0.7 }} />
+                        )}
+                      </ListItemButton>
+                    </Box>
+                  </Tooltip>
+                </ListItem>
+              );
+            })}
           </List>
         </Drawer>
 
