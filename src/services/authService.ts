@@ -91,12 +91,22 @@ export const isTokenExpired = (token: string): boolean => {
  */
 export const getUserFromToken = (token?: string): UserInfo | null => {
   const accessToken = token || getAccessToken();
-  if (!accessToken) return null;
+  console.log("getUserFromToken - accessToken:", accessToken ? "exists" : "null");
+  
+  if (!accessToken) {
+    console.log("No access token found");
+    return null;
+  }
 
   const decoded = decodeToken(accessToken);
-  if (!decoded) return null;
+  console.log("getUserFromToken - decoded:", decoded ? "success" : "failed");
+  
+  if (!decoded) {
+    console.log("Failed to decode token");
+    return null;
+  }
 
-  return {
+  const user = {
     id: decoded.user_id,
     email: decoded.email,
     role: decoded.user_role,
@@ -104,6 +114,9 @@ export const getUserFromToken = (token?: string): UserInfo | null => {
     lastName: decoded.last_name,
     fullName: `${decoded.first_name} ${decoded.last_name}`,
   };
+  
+  console.log("getUserFromToken - user:", user);
+  return user;
 };
 
 /**
@@ -142,6 +155,39 @@ export const hasAnyRole = (
 ): boolean => {
   const userRole = getUserRole();
   return userRole ? roles.includes(userRole) : false;
+};
+
+/**
+ * Get user profile from auth service
+ */
+export const getUserProfile = async (): Promise<any> => {
+  const API_BASE_URL = "http://localhost:80"; // Using nginx gateway
+  const token = getAccessToken();
+  
+  if (!token) {
+    throw new Error("No authentication token found");
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/profile/`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Auth profile data fetched:", data);
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch user profile:", error);
+    throw error;
+  }
 };
 
 /**
