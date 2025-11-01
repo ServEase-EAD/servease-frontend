@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { SelectChangeEvent } from '@mui/material';
-import api from '../../api/apiConfig'; // ✅ centralized axios instance
+import apiClient, { handleApiError } from '../../services/apiService';
+import { API_ENDPOINTS } from '../../config/api.config';
 import {
   Box,
   Card,
@@ -66,32 +67,23 @@ const CustomerRequests: React.FC = () => {
       setError('');
 
       try {
-        const loginResponse = await api.post('auth/login/', {
-          email: 'testemployee@gmail.com',
-          password: '@Test1234',
-        });
+        const response = await apiClient.get(API_ENDPOINTS.APPOINTMENTS.LIST);
+        console.log('✅ Appointments response:', response.data);
 
-        const accessToken = loginResponse.data.tokens?.access;
-        const refreshToken = loginResponse.data.tokens?.refresh;
-
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-
-        console.log('✅ Login successful via API Gateway');
-
-        const response = await api.get('appointments/', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        const data =
-          Array.isArray(response.data)
-            ? response.data
-            : response.data.results || response.data.appointments || [];
+        const data = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || response.data.appointments || [];
 
         setTasks(data);
-      } catch (error: any) {
+      } catch (error) {
         console.error('⚠️ Error fetching assigned tasks:', error);
-        setError(error.response?.data?.detail || 'Failed to load assigned tasks.');
+        const errorMessage = handleApiError(error);
+        setError(errorMessage);
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: 'error'
+        });
       } finally {
         setLoading(false);
       }
@@ -103,35 +95,34 @@ const CustomerRequests: React.FC = () => {
   // ----------------- Update Status via Gateway -----------------
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) throw new Error('No access token found.');
-
-      console.log(`🔄 Sending PATCH to Gateway for task ${taskId} → ${newStatus}`);
-
-      const response = await api.patch(
-        `appointments/${taskId}/`,
-        { status: newStatus.toLowerCase() },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+      console.log(`🔄 Updating task ${taskId} status to ${newStatus}`);
+      
+      const response = await apiClient.patch(
+        API_ENDPOINTS.APPOINTMENTS.DETAIL(taskId),
+        { status: newStatus.toLowerCase() }
       );
 
-      console.log('✅ Updated task status:', response.data);
+      console.log('✅ Status update response:', response.data);
 
       // Update frontend immediately
       setTasks(prevTasks =>
-        prevTasks.map(task => (task.id === taskId ? { ...task, status: newStatus.toLowerCase() } : task))
+        prevTasks.map(task =>
+          task.id === taskId ? { ...task, status: newStatus.toLowerCase() } : task
+        )
       );
 
       setSnackbar({
         open: true,
-        message: `Task status updated to ${formatStatus(newStatus)}.`,
-        severity: 'success',
+        message: `Status updated to ${formatStatus(newStatus)}`,
+        severity: 'success'
       });
-    } catch (error: any) {
-      console.error('❌ Error updating task status:', error);
+    } catch (error) {
+      console.error('❌ Error updating status:', error);
+      const errorMessage = handleApiError(error);
       setSnackbar({
         open: true,
-        message: 'Failed to update task status.',
-        severity: 'error',
+        message: errorMessage,
+        severity: 'error'
       });
     }
   };
@@ -276,8 +267,14 @@ const CustomerRequests: React.FC = () => {
         </FormControl>
       </Stack>
 
-      {/* Table */}
-      {!loading && !error && (
+      {/* Loading & Error States */}
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+      ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -292,7 +289,6 @@ const CustomerRequests: React.FC = () => {
             </TableHead>
             <TableBody>
               {filteredTasks.map(task => {
-                const nextStatus = getNextStatus(task.status);
                 const nextStatusLabelMap: Record<string, string> = {
                   pending: 'Confirm',
                   confirmed: 'Start Work',

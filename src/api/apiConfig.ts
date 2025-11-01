@@ -1,8 +1,10 @@
 import axios from "axios";
 
 // ✅ Base URL for Nginx API Gateway
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:80';
+
 const api = axios.create({
-  baseURL: "http://localhost/api/v1/",
+  baseURL: `${baseURL}/api/v1`,
   headers: {
     "Content-Type": "application/json",
   },
