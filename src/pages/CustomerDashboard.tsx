@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import {
   Box,
-  Card,
-  CardContent,
-  Typography,
   Container,
   Button,
   Paper,
@@ -13,45 +10,37 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Chip,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  AppBar,
-  Toolbar,
   IconButton,
-  Divider,
-  Tooltip,
+  Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   Person,
-  Dashboard as DashboardIcon,
   ExitToApp,
-  Edit,
   Add,
-  LocationOn,
-  Business,
-  Phone,
-  Email,
-  CalendarToday,
-  CheckCircle,
   Warning,
-  Event as EventIcon,
-  AccountCircle,
   Menu as MenuIcon,
   Chat as ChatIcon,
-  DirectionsCar as VehicleIcon,
+  Dashboard as DashboardIcon,
+  Event as EventIcon,
   Build as BuildIcon,
+  DirectionsCar as VehicleIcon,
+  AccountCircle,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
 import { useCustomer } from "../hooks/useCustomer";
-import { CustomerProfileForm } from "../components/CustomerProfile/CustomerProfileForm";
+import { CustomerProfileForm } from "../components/CustomerDashboard/CustomerProfileForm";
+import DashboardSection from "../components/CustomerDashboard/DashboardSection";
+import AppointmentsSection from "../components/CustomerDashboard/AppointmentsSection";
+import ProjectsSection from "../components/CustomerDashboard/ProjectsSection";
+import VehiclesSection from "../components/CustomerDashboard/VehiclesSection";
+import ProfileSection from "../components/CustomerDashboard/ProfileSection";
+import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
+import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -60,14 +49,10 @@ const CustomerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Get actual user ID from JWT token
   const user = getUserFromToken();
   const userId = user?.id || null;
-
-  // Check if user is authenticated
   const isAuthenticated = user !== null;
 
-  // Use customer hook for data management
   const {
     customer,
     loading,
@@ -79,7 +64,6 @@ const CustomerDashboard: React.FC = () => {
     retryConnection,
   } = useCustomer();
 
-  // If user is not authenticated, show login prompt
   if (!isAuthenticated) {
     return (
       <Container maxWidth="sm">
@@ -116,7 +100,6 @@ const CustomerDashboard: React.FC = () => {
       await createProfile(data);
       setShowProfileForm(false);
     } catch (error) {
-      // Error is handled by the hook
       console.error("Failed to create profile:", error);
     }
   };
@@ -127,7 +110,6 @@ const CustomerDashboard: React.FC = () => {
       setShowProfileForm(false);
       setIsEditMode(false);
     } catch (error) {
-      // Error is handled by the hook
       console.error("Failed to update profile:", error);
     }
   };
@@ -147,566 +129,94 @@ const CustomerDashboard: React.FC = () => {
     setIsEditMode(false);
   };
 
-  // Sidebar menu items
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: <DashboardIcon />, requiresProfile: true },
-    { id: "appointments", label: "Service", icon: <EventIcon />, requiresProfile: true },
-    { id: "projects", label: "Projects", icon: <BuildIcon />, requiresProfile: true },
-    { id: "vehicles", label: "Vehicles", icon: <VehicleIcon />, requiresProfile: true },
-    { id: "profile", label: "Profile", icon: <AccountCircle />, requiresProfile: false },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <DashboardIcon />,
+      requiresProfile: true,
+    },
+    {
+      id: "appointments",
+      label: "Service",
+      icon: <EventIcon />,
+      requiresProfile: true,
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: <BuildIcon />,
+      requiresProfile: true,
+    },
+    {
+      id: "vehicles",
+      label: "Vehicles",
+      icon: <VehicleIcon />,
+      requiresProfile: true,
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      icon: <AccountCircle />,
+      requiresProfile: false,
+    },
   ];
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
   const handleTabChange = (tabId: string) => {
-    // Prevent navigation to profile-required sections if no profile exists
-    const menuItem = menuItems.find(item => item.id === tabId);
+    const menuItem = menuItems.find((item) => item.id === tabId);
     if (menuItem?.requiresProfile && !hasProfile) {
-      return; // Don't allow navigation
+      return;
     }
     setActiveTab(tabId);
-    setSidebarOpen(false); // Close sidebar on mobile after selection
+    setSidebarOpen(false);
   };
 
-  // Render content based on active tab
   const renderTabContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return renderDashboardContent();
+        return (
+          <DashboardSection
+            customer={customer}
+            onNavigate={setActiveTab}
+            onShowProfileData={() => setShowProfileData(true)}
+          />
+        );
       case "appointments":
-        return renderAppointmentsContent();
+        return <AppointmentsSection />;
       case "projects":
-        return renderProjectsContent();
+        return <ProjectsSection />;
       case "vehicles":
-        return renderVehicleContent();
+        return <VehiclesSection />;
       case "profile":
-        return renderProfileContent();
+        return (
+          <ProfileSection
+            customer={customer}
+            onEditProfile={openEditForm}
+            onCreateProfile={openCreateForm}
+          />
+        );
       default:
-        return renderDashboardContent();
+        return (
+          <DashboardSection
+            customer={customer}
+            onNavigate={setActiveTab}
+            onShowProfileData={() => setShowProfileData(true)}
+          />
+        );
     }
   };
-
-  // Dashboard content (original dashboard cards)
-  const renderDashboardContent = () => (
-    <Box
-      sx={{
-        display: "grid",
-        gap: 3,
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      }}
-    >
-      <Card elevation={3}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-            <DashboardIcon color="primary" sx={{ mr: 2 }} />
-            <Typography variant="h6" component="h2">
-              Customer Portal
-            </Typography>
-          </Box>
-          <Typography variant="body1" color="text.secondary" paragraph>
-            Access all your customer services and manage your account from
-            this dashboard.
-          </Typography>
-          <Box sx={{ mt: 2 }}>
-            <Typography
-              variant="body2"
-              color="primary"
-              fontWeight="medium"
-            >
-              ✓ You have full access to customer features
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 1 }}
-            >
-              • View and manage your services
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • Track service requests
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • Update your profile information
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card elevation={3}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            Quick Actions
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              mt: 2,
-            }}
-          >
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{ py: 1.5, textTransform: "none" }}
-            >
-              Request Service
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{ py: 1.5, textTransform: "none" }}
-            >
-              View Service History
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => setActiveTab("profile")}
-              sx={{ py: 1.5, textTransform: "none" }}
-            >
-              Update Profile
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => setShowProfileData(true)}
-              sx={{ py: 1.5, textTransform: "none" }}
-            >
-              View Customer Profile Data
-            </Button>
-            <Button
-              variant="outlined"
-              fullWidth
-              sx={{ py: 1.5, textTransform: "none" }}
-            >
-              Contact Support
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card elevation={3}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            Service Summary
-          </Typography>
-          <Box sx={{ mt: 2 }}>
-            <Typography
-              variant="h3"
-              color="primary"
-              fontWeight="bold"
-            >
-              {customer?.total_services || 0}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 1 }}
-            >
-              Total Services Completed
-            </Typography>
-            {customer?.last_service_date && (
-              <Typography variant="body2" color="text.secondary">
-                Last Service: {new Date(customer.last_service_date).toLocaleDateString()}
-              </Typography>
-            )}
-            <Typography variant="body2" color="text.secondary">
-              Preferred Contact: {customer?.preferred_contact_method || "Not set"}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
-
-  // Appointments content
-  const renderAppointmentsContent = () => (
-    <Card elevation={3}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-          <EventIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
-          <Typography variant="h5" component="h2">
-            My Appointments
-          </Typography>
-        </Box>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            Appointments feature is coming soon! You'll be able to view and manage your service appointments here.
-          </Typography>
-        </Alert>
-        <Box sx={{ textAlign: "center", py: 4 }}>
-          <EventIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No appointments scheduled
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Schedule your first appointment to get started with our services.
-          </Typography>
-          <Button
-            variant="contained"
-            sx={{
-              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-              },
-            }}
-          >
-            Schedule Appointment
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
-      // Projects content
-  const renderProjectsContent = () => (
-    <Card elevation={3}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-          <BuildIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
-          <Typography variant="h5" component="h2">
-            My Projects
-          </Typography>
-        </Box>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            Projects feature is coming soon! You'll be able to view and track your service projects here.
-          </Typography>
-        </Alert>
-        <Box sx={{ textAlign: "center", py: 4 }}>
-          <BuildIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No projects available
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Your service projects will appear here once they are created.
-          </Typography>
-          <Button
-            variant="contained"
-            sx={{
-              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-              },
-            }}
-          >
-            Request Service
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
-  // Vehicle content
-  const renderVehicleContent = () => (
-    <Card elevation={3}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-          <VehicleIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
-          <Typography variant="h5" component="h2">
-            My Vehicles
-          </Typography>
-        </Box>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            Vehicle feature is coming soon! You'll be able to view and track your vehicles here.
-          </Typography>
-        </Alert>
-        <Box sx={{ textAlign: "center", py: 4 }}>
-          <VehicleIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No vehicles available
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Your vehicles will appear here once they are created.
-          </Typography>
-          <Button
-            variant="contained"
-            sx={{
-              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-              },
-            }}
-          >
-            Request Service
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
-
-  // Profile content (current profile display)
-  const renderProfileContent = () => (
-    <>
-      {customer ? (
-        <Card elevation={3} sx={{ mb: 3 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <AccountCircle color="primary" sx={{ mr: 2, fontSize: 30 }} />
-                <Typography variant="h5" component="h2">
-                  Customer Profile
-                </Typography>
-              </Box>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Edit />}
-                onClick={openEditForm}
-              >
-                Edit Profile
-              </Button>
-            </Box>
-
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 3 }}>
-              {/* Personal Information */}
-              <Box>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Personal Information
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <Email sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">{customer.email || "Not provided"}</Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <Person sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    {customer.full_name || `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || "Not provided"}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <Phone sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">{customer.phone_number || "Not provided"}</Typography>
-                </Box>
-              </Box>
-
-              {/* Address Information */}
-              <Box>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Address
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "flex-start", mb: 1 }}>
-                  <LocationOn sx={{ mr: 1, fontSize: 18, color: "text.secondary", mt: 0.5 }} />
-                  <Typography variant="body2">
-                    {customer.full_address || "No address provided"}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Business Information */}
-              {customer.is_business_customer && (
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Business Information
-                  </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <Business sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
-                    <Typography variant="body2">{customer.company_name}</Typography>
-                  </Box>
-                  {customer.business_type && (
-                    <Typography variant="body2" color="text.secondary">
-                      Type: {customer.business_type}
-                    </Typography>
-                  )}
-                </Box>
-              )}
-
-              {/* Account Status */}
-              <Box>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Account Status
-                </Typography>
-                {/* <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <CheckCircle sx={{ mr: 1, fontSize: 18, color: customer.is_verified ? "success.main" : "warning.main" }} />
-                  <Chip
-                    label={customer.is_verified ? "Verified" : "Pending Verification"}
-                    color={customer.is_verified ? "success" : "warning"}
-                    size="small"
-                  />
-                </Box> */}
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <CalendarToday sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
-                  <Typography variant="body2">
-                    Customer since: {new Date(customer.customer_since).toLocaleDateString()}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total Services: {customer.total_services}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* <Box sx={{ mt: 3, textAlign: "center" }}>
-              <Button
-                variant="outlined"
-                onClick={() => setShowProfileData(true)}
-                sx={{ mr: 2 }}
-              >
-                View Complete Profile Data
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Edit />}
-                onClick={openEditForm}
-                sx={{
-                  background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-                  },
-                }}
-              >
-                Edit Profile
-              </Button>
-            </Box> */}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card elevation={3}>
-          <CardContent sx={{ p: 4, textAlign: "center" }}>
-            <AccountCircle sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Profile Not Found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              Complete your profile to access all customer features.
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={openCreateForm}
-              sx={{
-                background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-                },
-              }}
-            >
-              Create Profile
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </>
-  );
 
   return (
     <NotificationProvider userId={userId}>
       <Box sx={{ display: "flex" }}>
-        {/* Sidebar */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: 280,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: 280,
-              boxSizing: 'border-box',
-              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              color: "white",
-            },
-          }}
-        >
-          {/* Header */}
-          <Box sx={{ p: 3, borderBottom: "1px solid rgba(255,255,255,0.2)" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "white",
-                  borderRadius: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography variant="h6" sx={{ color: "#FF4D00", fontWeight: "bold" }}>
-                  S
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="h6" component="h1" fontWeight="bold">
-                  ServEase
-                </Typography>
-                {/* <Typography variant="body2" sx={{ opacity: 0.8, fontSize: "0.75rem" }}>
-                  Customer Dashboard
-                </Typography> */}
-              </Box>
-            </Box>
-          </Box>
+        <DesktopSidebar
+          menuItems={menuItems}
+          activeTab={activeTab}
+          hasProfile={hasProfile}
+          user={user}
+          onTabChange={handleTabChange}
+        />
 
-          {/* Navigation Menu */}
-          <List sx={{ pt: 2 }}>
-            {menuItems.map((item) => {
-              const isDisabled = item.requiresProfile && !hasProfile;
-              return (
-                <ListItem key={item.id} disablePadding>
-                  <Tooltip 
-                    title={isDisabled ? "Complete your profile to access this section" : ""} 
-                    placement="right"
-                    arrow
-                  >
-                    <Box sx={{ width: "100%" }}>
-                      <ListItemButton
-                        onClick={() => handleTabChange(item.id)}
-                        disabled={isDisabled}
-                        sx={{
-                          mx: 2,
-                          mb: 1,
-                          borderRadius: 1,
-                          backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
-                          opacity: isDisabled ? 0.5 : 1,
-                          cursor: isDisabled ? "not-allowed" : "pointer",
-                          "&:hover": {
-                            backgroundColor: isDisabled ? "transparent" : "rgba(255,255,255,0.1)",
-                          },
-                          "&.Mui-disabled": {
-                            opacity: 0.5,
-                          },
-                        }}
-                      >
-                        <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            fontWeight: activeTab === item.id ? "bold" : "normal",
-                          }}
-                        />
-                      </ListItemButton>
-                    </Box>
-                  </Tooltip>
-                </ListItem>
-              );
-            })}
-          </List>
-
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.2)", mx: 2, my: 2 }} />
-
-          {/* User Info Section */}
-          <Box sx={{ p: 2, mt: "auto", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Person sx={{ mr: 2, fontSize: 20 }} />
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                  {user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Customer"}
-                </Typography>
-                {/* <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  {customer?.is_verified ? "✓ Verified" : "⚠ Pending Verification"}
-                </Typography> */}
-              </Box>
-            </Box>
-            
-          </Box>
-        </Drawer>
-
-        {/* Main Content */}
         <Box
           component="main"
           sx={{
@@ -730,12 +240,20 @@ const CustomerDashboard: React.FC = () => {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            <Typography variant="h5" component="h1" fontWeight="bold" color="text.primary">
-              {menuItems.find(item => item.id === activeTab)?.label || "Dashboard"}
-            </Typography>
-            
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {/* Notification Bell */}
+              <IconButton
+                sx={{ display: { xs: "block", md: "none" } }}
+                onClick={() => setSidebarOpen(true)}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Typography variant="h5" component="h1" fontWeight="bold" color="text.primary">
+                {menuItems.find((item) => item.id === activeTab)?.label ||
+                  "Dashboard"}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Box
                 sx={{
                   backgroundColor: "rgba(255, 77, 0, 0.9)",
@@ -748,8 +266,7 @@ const CustomerDashboard: React.FC = () => {
               >
                 <NotificationBellMUI />
               </Box>
-              
-              {/* Logout Button */}
+
               <Button
                 component={Link}
                 to="/login"
@@ -771,7 +288,7 @@ const CustomerDashboard: React.FC = () => {
 
           {/* Content Area */}
           <Box sx={{ flexGrow: 1, p: 3, position: "relative" }}>
-            {/* AI Chatbot Button - Bottom Right Corner */}
+            {/* AI Chatbot Button */}
             <Box
               sx={{
                 position: "fixed",
@@ -801,46 +318,20 @@ const CustomerDashboard: React.FC = () => {
               </IconButton>
             </Box>
 
-            {/* Mobile Header */}
-            <AppBar
-              position="static"
-              sx={{
-                display: { xs: "block", md: "none" },
-                mb: 3,
-                background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              }}
-            >
-              <Toolbar>
-                <IconButton
-                  edge="start"
-                  color="inherit"
-                  onClick={toggleSidebar}
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                  {menuItems.find(item => item.id === activeTab)?.label || "Dashboard"}
-                </Typography>
-              </Toolbar>
-            </AppBar>
-
-            {/* Loading State */}
             {profileCheckLoading && (
               <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
                 <CircularProgress />
               </Box>
             )}
 
-            {/* Error State */}
             {error && (
-              <Alert 
-                severity="error" 
+              <Alert
+                severity="error"
                 sx={{ mb: 3 }}
                 action={
                   <Box sx={{ display: "flex", gap: 1 }}>
-                    <Button 
-                      color="inherit" 
+                    <Button
+                      color="inherit"
                       size="small"
                       onClick={retryConnection}
                       disabled={loading || profileCheckLoading}
@@ -848,8 +339,8 @@ const CustomerDashboard: React.FC = () => {
                       Retry
                     </Button>
                     {error.includes("No response from server") && (
-                      <Button 
-                        color="inherit" 
+                      <Button
+                        color="inherit"
                         size="small"
                         onClick={openCreateForm}
                         disabled={loading || profileCheckLoading}
@@ -863,18 +354,10 @@ const CustomerDashboard: React.FC = () => {
                 <Typography variant="subtitle2" gutterBottom>
                   Connection Error
                 </Typography>
-                <Typography variant="body2">
-                  {error}
-                </Typography>
-                {error.includes("No response from server") && (
-                  <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                    Unable to verify if you have an existing profile. You can try to create a new profile or check your connection and retry.
-                  </Typography>
-                )}
+                <Typography variant="body2">{error}</Typography>
               </Alert>
             )}
 
-            {/* No Profile State - Only show if we successfully checked and confirmed no profile exists */}
             {!profileCheckLoading && !hasProfile && !error && (
               <>
                 <Alert severity="info" sx={{ mb: 3 }}>
@@ -882,7 +365,8 @@ const CustomerDashboard: React.FC = () => {
                     Profile Setup Required
                   </Typography>
                   <Typography variant="body2">
-                    Some sections are currently locked. Complete your profile to unlock all features including Service appointments and Projects.
+                    Some sections are currently locked. Complete your profile to
+                    unlock all features including Service appointments and Projects.
                   </Typography>
                 </Alert>
                 <Card elevation={3} sx={{ mb: 3 }}>
@@ -892,8 +376,9 @@ const CustomerDashboard: React.FC = () => {
                       Complete Your Profile
                     </Typography>
                     <Typography variant="body1" color="text.secondary" paragraph>
-                      To get started with ServEase, please create your customer profile.
-                      This will help us provide you with personalized service.
+                      To get started with ServEase, please create your customer
+                      profile. This will help us provide you with personalized
+                      service.
                     </Typography>
                     <Button
                       variant="contained"
@@ -901,9 +386,11 @@ const CustomerDashboard: React.FC = () => {
                       startIcon={<Add />}
                       onClick={openCreateForm}
                       sx={{
-                        background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
+                        background:
+                          "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
                         "&:hover": {
-                          background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
+                          background:
+                            "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
                         },
                       }}
                     >
@@ -914,111 +401,20 @@ const CustomerDashboard: React.FC = () => {
               </>
             )}
 
-            {/* Tab Content */}
-            {!profileCheckLoading && hasProfile && customer && renderTabContent()}
+            {!profileCheckLoading && (hasProfile || activeTab === "profile" || activeTab === "dashboard") && renderTabContent()}
           </Box>
         </Box>
 
-        {/* Mobile Sidebar Drawer */}
-        <Drawer
-          anchor="left"
+        <MobileSidebar
           open={sidebarOpen}
+          menuItems={menuItems}
+          activeTab={activeTab}
+          hasProfile={hasProfile}
           onClose={() => setSidebarOpen(false)}
-          sx={{
-            display: { xs: "block", md: "none" },
-            '& .MuiDrawer-paper': {
-              width: 280,
-              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-              color: "white",
-            },
-          }}
-        >
-          {/* Same content as permanent sidebar */}
-          <Box sx={{ p: 3, borderBottom: "1px solid rgba(255,255,255,0.2)" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "white",
-                  borderRadius: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography variant="h6" sx={{ color: "#FF4D00", fontWeight: "bold" }}>
-                  S
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="h6" component="h1" fontWeight="bold">
-                  ServEase
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, fontSize: "0.75rem" }}>
-                  Customer Dashboard
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+          onTabChange={handleTabChange}
+        />
 
-          <List sx={{ pt: 2 }}>
-            {menuItems.map((item) => {
-              const isDisabled = item.requiresProfile && !hasProfile;
-              return (
-                <ListItem key={item.id} disablePadding>
-                  <Tooltip 
-                    title={isDisabled ? "Complete your profile to access this section" : ""} 
-                    placement="right"
-                    arrow
-                  >
-                    <Box sx={{ width: "100%" }}>
-                      <ListItemButton
-                        onClick={() => handleTabChange(item.id)}
-                        disabled={isDisabled}
-                        sx={{
-                          mx: 2,
-                          mb: 1,
-                          borderRadius: 1,
-                          backgroundColor: activeTab === item.id ? "rgba(255,255,255,0.2)" : "transparent",
-                          opacity: isDisabled ? 0.5 : 1,
-                          cursor: isDisabled ? "not-allowed" : "pointer",
-                          "&:hover": {
-                            backgroundColor: isDisabled ? "transparent" : "rgba(255,255,255,0.1)",
-                          },
-                          "&.Mui-disabled": {
-                            opacity: 0.5,
-                          },
-                        }}
-                      >
-                        <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item.label}
-                          primaryTypographyProps={{
-                            fontWeight: activeTab === item.id ? "bold" : "normal",
-                          }}
-                        />
-                        {isDisabled && (
-                          <Warning sx={{ fontSize: 18, ml: 1, opacity: 0.7 }} />
-                        )}
-                      </ListItemButton>
-                    </Box>
-                  </Tooltip>
-                </ListItem>
-              );
-            })}
-          </List>
-        </Drawer>
-
-        {/* Profile Form Dialog */}
-        <Dialog
-          open={showProfileForm}
-          onClose={closeForm}
-          maxWidth="md"
-          fullWidth
-        >
+        <Dialog open={showProfileForm} onClose={closeForm} maxWidth="md" fullWidth>
           <DialogTitle>
             {isEditMode ? "Update Customer Profile" : "Create Customer Profile"}
           </DialogTitle>
@@ -1036,7 +432,6 @@ const CustomerDashboard: React.FC = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Customer Profile Data Dialog */}
         <Dialog
           open={showProfileData}
           onClose={() => setShowProfileData(false)}
@@ -1056,33 +451,44 @@ const CustomerDashboard: React.FC = () => {
                   Personal Information
                 </Typography>
                 <Paper sx={{ p: 2, mb: 3, backgroundColor: "grey.50" }}>
-                  <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 2 }}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                      gap: 2,
+                    }}
+                  >
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">User ID</Typography>
-                      <Typography variant="body2">{customer.user_id || customer.id || "N/A"}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Primary account identifier
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        User ID
+                      </Typography>
+                      <Typography variant="body2">
+                        {customer.user_id || customer.id || "N/A"}
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">Email</Typography>
-                      <Typography variant="body2">{customer.email || "N/A"}</Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Email
+                      </Typography>
+                      <Typography variant="body2">
+                        {customer.email || "N/A"}
+                      </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">First Name</Typography>
-                      <Typography variant="body2">{customer.first_name || "N/A"}</Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Full Name
+                      </Typography>
+                      <Typography variant="body2">
+                        {customer.full_name || "N/A"}
+                      </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">Last Name</Typography>
-                      <Typography variant="body2">{customer.last_name || "N/A"}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">Full Name</Typography>
-                      <Typography variant="body2">{customer.full_name || "N/A"}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="bold">Phone Number</Typography>
-                      <Typography variant="body2">{customer.phone_number || "N/A"}</Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Phone Number
+                      </Typography>
+                      <Typography variant="body2">
+                        {customer.phone_number || "N/A"}
+                      </Typography>
                     </Box>
                   </Box>
                 </Paper>
