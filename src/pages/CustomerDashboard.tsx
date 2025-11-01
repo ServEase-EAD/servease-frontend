@@ -40,17 +40,18 @@ import {
   CheckCircle,
   Warning,
   Event as EventIcon,
-  Work as ProjectIcon,
   AccountCircle,
   Menu as MenuIcon,
   Chat as ChatIcon,
+  DirectionsCar as VehicleIcon,
+  Build as BuildIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
 import { useCustomer } from "../hooks/useCustomer";
-import { CustomerProfileForm } from "../components/CustomerProfileForm";
+import { CustomerProfileForm } from "../components/CustomerProfile/CustomerProfileForm";
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -150,7 +151,8 @@ const CustomerDashboard: React.FC = () => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: <DashboardIcon />, requiresProfile: true },
     { id: "appointments", label: "Service", icon: <EventIcon />, requiresProfile: true },
-    { id: "projects", label: "Projects", icon: <ProjectIcon />, requiresProfile: true },
+    { id: "projects", label: "Projects", icon: <BuildIcon />, requiresProfile: true },
+    { id: "vehicles", label: "Vehicles", icon: <VehicleIcon />, requiresProfile: true },
     { id: "profile", label: "Profile", icon: <AccountCircle />, requiresProfile: false },
   ];
 
@@ -177,6 +179,8 @@ const CustomerDashboard: React.FC = () => {
         return renderAppointmentsContent();
       case "projects":
         return renderProjectsContent();
+      case "vehicles":
+        return renderVehicleContent();
       case "profile":
         return renderProfileContent();
       default:
@@ -357,12 +361,12 @@ const CustomerDashboard: React.FC = () => {
     </Card>
   );
 
-  // Projects content
+      // Projects content
   const renderProjectsContent = () => (
     <Card elevation={3}>
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-          <ProjectIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
+          <BuildIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
           <Typography variant="h5" component="h2">
             My Projects
           </Typography>
@@ -373,7 +377,7 @@ const CustomerDashboard: React.FC = () => {
           </Typography>
         </Alert>
         <Box sx={{ textAlign: "center", py: 4 }}>
-          <ProjectIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
+          <BuildIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No projects available
           </Typography>
@@ -395,6 +399,46 @@ const CustomerDashboard: React.FC = () => {
       </CardContent>
     </Card>
   );
+
+  // Vehicle content
+  const renderVehicleContent = () => (
+    <Card elevation={3}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <VehicleIcon color="primary" sx={{ mr: 2, fontSize: 30 }} />
+          <Typography variant="h5" component="h2">
+            My Vehicles
+          </Typography>
+        </Box>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            Vehicle feature is coming soon! You'll be able to view and track your vehicles here.
+          </Typography>
+        </Alert>
+        <Box sx={{ textAlign: "center", py: 4 }}>
+          <VehicleIcon sx={{ fontSize: 80, color: "text.secondary", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No vehicles available
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            Your vehicles will appear here once they are created.
+          </Typography>
+          <Button
+            variant="contained"
+            sx={{
+              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
+              },
+            }}
+          >
+            Request Service
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
 
   // Profile content (current profile display)
   const renderProfileContent = () => (

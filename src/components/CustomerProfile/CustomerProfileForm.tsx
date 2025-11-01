@@ -19,7 +19,7 @@ import {
   Stack,
 } from "@mui/material";
 import { Person, Save } from "@mui/icons-material";
-import type { Customer, CustomerCreateRequest, CustomerUpdateRequest } from "../types";
+import type { Customer, CustomerCreateRequest, CustomerUpdateRequest } from "../../types";
 
 interface CustomerProfileFormProps {
   customer?: Customer | null;
