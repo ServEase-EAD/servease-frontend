@@ -471,14 +471,14 @@ const CustomerDashboard: React.FC = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Account Status
                 </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                {/* <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <CheckCircle sx={{ mr: 1, fontSize: 18, color: customer.is_verified ? "success.main" : "warning.main" }} />
                   <Chip
                     label={customer.is_verified ? "Verified" : "Pending Verification"}
                     color={customer.is_verified ? "success" : "warning"}
                     size="small"
                   />
-                </Box>
+                </Box> */}
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <CalendarToday sx={{ mr: 1, fontSize: 18, color: "text.secondary" }} />
                   <Typography variant="body2">
@@ -630,9 +630,9 @@ const CustomerDashboard: React.FC = () => {
                 <Typography variant="body2" fontWeight="bold">
                   {user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Customer"}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                {/* <Typography variant="caption" sx={{ opacity: 0.8 }}>
                   {customer?.is_verified ? "✓ Verified" : "⚠ Pending Verification"}
-                </Typography>
+                </Typography> */}
               </Box>
             </Box>
             
