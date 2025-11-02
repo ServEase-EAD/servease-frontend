@@ -10,32 +10,41 @@ import { API_ENDPOINTS } from "../config/api.config";
  */
 export interface Vehicle {
   vehicle_id: string;
-  display_name: string;
-  plate_number: string;
+  customer_id: string;
+  make: string;
+  model: string;
+  year: number;
   color: string;
   vin: string;
+  plate_number: string;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
+  display_name: string;
+  age?: number;
 }
 
 /**
  * Create Vehicle Data interface
  */
 export interface CreateVehicleData {
-  display_name: string;
-  plate_number: string;
+  make: string;
+  model: string;
+  year: number;
   color: string;
   vin: string;
+  plate_number: string;
 }
 
 /**
  * Update Vehicle Data interface
  */
 export interface UpdateVehicleData {
-  display_name?: string;
-  plate_number?: string;
+  make?: string;
+  model?: string;
+  year?: number;
   color?: string;
-  vin?: string;
+  plate_number?: string;
   is_active?: boolean;
 }
 
@@ -45,7 +54,21 @@ export interface UpdateVehicleData {
 export const getVehicles = async (): Promise<Vehicle[]> => {
   try {
     const response = await apiClient.get<Vehicle[]>(API_ENDPOINTS.VEHICLES.LIST);
-    return Array.isArray(response.data) ? response.data : [];
+    console.log("Vehicles API Response - Full response:", response);
+    console.log("Vehicles API Response - Data:", response.data);
+    console.log("Vehicles API Response - Data type:", typeof response.data);
+    console.log("Vehicles API Response - Is Array:", Array.isArray(response.data));
+    
+    if (Array.isArray(response.data)) {
+      console.log("Vehicles API Response - Array length:", response.data.length);
+      if (response.data.length > 0) {
+        console.log("Vehicles API Response - First vehicle:", response.data[0]);
+      }
+      return response.data;
+    }
+    
+    console.warn("Vehicles API Response - Not an array, returning empty array");
+    return [];
   } catch (error) {
     console.error("Error fetching vehicles:", error);
     throw new Error(handleApiError(error));
