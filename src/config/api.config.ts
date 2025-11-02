@@ -23,6 +23,19 @@ export const API_ENDPOINTS = {
   CUSTOMERS: {
     LIST: "/api/v1/customers/",
     DETAIL: (id: string) => `/api/v1/customers/${id}/`,
+    // New logical ID endpoints (use user_id from auth service)
+    LOGICAL_DETAIL: (userId: string) => `/api/v1/customers/logical/${userId}/`,
+    LOGICAL_UPDATE: (userId: string) => `/api/v1/customers/logical/${userId}/`,
+    LOGICAL_DELETE: (userId: string) => `/api/v1/customers/logical/${userId}/`,
+    // Legacy profile endpoints
+    PROFILE: "/api/v1/customers/profile/",
+    CREATE_PROFILE: "/api/v1/customers/profile/create/",
+    UPDATE_PROFILE: "/api/v1/customers/profile/update/",
+    DELETE_PROFILE: "/api/v1/customers/profile/delete/",
+    DASHBOARD: (id: string) => `/api/v1/customers/${id}/dashboard/`,
+    BY_USER_ID: "/api/v1/customers/by_user_id/",
+    CHECK_PROFILE: "/api/v1/customers/check_profile_exists/",
+    HEALTH: "/api/v1/customers/health/",
   },
 
   // Employee endpoints

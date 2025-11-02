@@ -34,14 +34,24 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
+    console.log("API Request interceptor - token exists:", token ? "yes" : "no");
+    console.log("API Request interceptor - URL:", config.url);
 
     if (token && !isTokenExpired(token)) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("API Request interceptor - Authorization header set");
+    } else {
+      console.log("API Request interceptor - No valid token, skipping auth header");
+      if (token) {
+        console.log("API Request interceptor - Token is expired");
+      }
     }
 
+    console.log("API Request interceptor - Final headers:", config.headers);
     return config;
   },
   (error: AxiosError) => {
+    console.error("API Request interceptor - Error:", error);
     return Promise.reject(error);
   }
 );
@@ -71,8 +81,14 @@ const processQueue = (
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("API Response interceptor - Success:", response.status, response.config.url);
+    return response;
+  },
   async (error: AxiosError) => {
+    console.error("API Response interceptor - Error:", error.response?.status, error.config?.url);
+    console.error("API Response interceptor - Error details:", error.message);
+    
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -146,10 +162,13 @@ export default apiClient;
  * Helper function to handle API errors
  */
 export const handleApiError = (error: unknown): string => {
+  console.error("API Error:", error);
+  
   if (axios.isAxiosError(error)) {
     if (error.response) {
       // Server responded with error
       const data = error.response.data;
+      console.error("Server error response:", error.response.status, data);
 
       if (typeof data === "string") {
         return data;
@@ -178,16 +197,21 @@ export const handleApiError = (error: unknown): string => {
       return `Error: ${error.response.status} ${error.response.statusText}`;
     } else if (error.request) {
       // Request made but no response
-      return "No response from server. Please check your connection.";
+      console.error("No response received:", error.request);
+      console.error("Request config:", error.config);
+      return "No response from server. Please check your connection and ensure the backend services are running.";
     } else {
       // Error setting up request
+      console.error("Request setup error:", error.message);
       return error.message;
     }
   }
 
   if (error instanceof Error) {
+    console.error("Generic error:", error.message);
     return error.message;
   }
 
+  console.error("Unknown error:", error);
   return "An unexpected error occurred";
 };

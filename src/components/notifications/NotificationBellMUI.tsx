@@ -79,18 +79,22 @@ export function NotificationBellMUI() {
       >
         <IconButton
           onClick={handleClick}
-          size="large"
+          size="medium"
           aria-label={`${unreadCount} notifications`}
           color="inherit"
           sx={{
             opacity: isConnected ? 1 : 0.6,
+            color: "white",
+            "&:hover": {
+              backgroundColor: "rgba(255,255,255,0.1)",
+            },
           }}
         >
           <Badge badgeContent={unreadCount} color="error" max={99}>
             {unreadCount > 0 ? (
-              <NotificationsActive sx={{ color: "white" }} />
+              <NotificationsActive sx={{ color: "white", fontSize: 24 }} />
             ) : (
-              <NotificationsIcon sx={{ color: "white" }} />
+              <NotificationsIcon sx={{ color: "white", fontSize: 24 }} />
             )}
           </Badge>
         </IconButton>
