@@ -976,7 +976,15 @@ const ProjectsSection: React.FC = () => {
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Request Title
                 </Typography>
-                <Typography variant="h6" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontSize: "1.1rem",
+                    letterSpacing: 0.1,
+                    color: "#222",
+                  }}
+                  gutterBottom
+                >
                   {selectedProject.title}
                 </Typography>
               </Box>
