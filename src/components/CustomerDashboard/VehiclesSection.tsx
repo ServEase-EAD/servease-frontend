@@ -214,12 +214,13 @@ const VehiclesSection: React.FC = () => {
     }
 
     try {
-      // Convert to uppercase for plate number
+      // Convert to uppercase for VIN and plate number
       const updateData = {
         make: formData.make,
         model: formData.model,
         year: formData.year,
         color: formData.color,
+        vin: formData.vin.toUpperCase(),
         plate_number: formData.plate_number.toUpperCase(),
       };
 
@@ -1014,12 +1015,24 @@ const VehiclesSection: React.FC = () => {
             <TextField
               label="VIN (Vehicle Identification Number)"
               value={formData.vin}
+              onChange={(e) =>
+                setFormData({ ...formData, vin: e.target.value.toUpperCase() })
+              }
               fullWidth
-              disabled
-              helperText="VIN cannot be changed"
+              required
+              inputProps={{ maxLength: 17 }}
+              helperText={`${formData.vin.length}/17 characters (no I, O, or Q)`}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#f5f5f5",
+                  "&:hover fieldset": {
+                    borderColor: "#FF4D00",
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "#FF4D00",
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: "#FF4D00",
                 },
               }}
             />
@@ -1075,6 +1088,7 @@ const VehiclesSection: React.FC = () => {
               !formData.model ||
               !formData.year ||
               !formData.color ||
+              !formData.vin ||
               !formData.plate_number
             }
             sx={{
