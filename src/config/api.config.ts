@@ -1,11 +1,31 @@
-/**
- * API Configuration
- * Centralized API configuration using Nginx as reverse proxy
- */
+import axios from "axios";
 
-// API Base URL - uses Nginx reverse proxy
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+// Constants
+export const REQUEST_TIMEOUT = 30000; // 30 seconds
+export const TOKEN_STORAGE_KEY = "accessToken";
+export const REFRESH_TOKEN_STORAGE_KEY = "refreshToken";
+
+// 🌐 Base URL for Nginx API Gateway
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: REQUEST_TIMEOUT,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true, // Important for CORS
+});
+
+// 🔄 Automatically add access token if available
+api.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -42,6 +62,25 @@ export const API_ENDPOINTS = {
   EMPLOYEES: {
     LIST: "/api/v1/employees/",
     DETAIL: (id: string) => `/api/v1/employees/${id}/`,
+    PROFILE: "/api/v1/employees/profile/",
+    UPDATE_PROFILE: "/api/v1/employees/profile/update/",
+    CHANGE_PASSWORD: "/api/v1/employees/profile/password/",
+    TASKS: {
+      LIST: "/api/v1/employees/assigned-tasks/",
+      DETAIL: (id: string) => `/api/v1/employees/assigned-tasks/${id}/`,
+      UPDATE_STATUS: (id: string) => `/api/v1/employees/assigned-tasks/${id}/status/`,
+    },
+    TIME_LOGS: {
+      LIST: "/api/v1/employees/time-logs/",
+      CREATE: "/api/v1/employees/time-logs/create/",
+      UPDATE: (id: string) => `/api/v1/employees/time-logs/${id}/`,
+    },
+    SERVICE_REQUESTS: {
+      LIST: "/api/v1/employees/service-requests/",
+      DETAIL: (id: string) => `/api/v1/employees/service-requests/${id}/`,
+      ACCEPT: (id: string) => `/api/v1/employees/service-requests/${id}/accept/`,
+      REJECT: (id: string) => `/api/v1/employees/service-requests/${id}/reject/`,
+    }
   },
 
   // TimeLog endpoints - Uses JWT token for employee identification
@@ -70,12 +109,6 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/api/v1/vehicles/${id}/`,
   },
 
-  // Project endpoints
-  PROJECTS: {
-    LIST: "/api/v1/projects/",
-    DETAIL: (id: string) => `/api/v1/projects/${id}/`,
-  },
-
   // Appointment endpoints
   APPOINTMENTS: {
     LIST: "/api/v1/appointments/",
@@ -94,9 +127,4 @@ export const API_ENDPOINTS = {
   },
 };
 
-// Request timeout
-export const REQUEST_TIMEOUT = 30000; // 30 seconds
-
-// Token storage keys
-export const TOKEN_STORAGE_KEY = "access_token";
-export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
+export default api;
