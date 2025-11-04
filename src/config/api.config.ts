@@ -48,12 +48,18 @@ export const API_ENDPOINTS = {
   VEHICLES: {
     LIST: "/api/v1/vehicles/",
     DETAIL: (id: string) => `/api/v1/vehicles/${id}/`,
+    CREATE: "/api/v1/vehicles/",
+    UPDATE: (id: string) => `/api/v1/vehicles/${id}/`,
+    DELETE: (id: string) => `/api/v1/vehicles/${id}/`,
   },
 
-  // Project endpoints
+  // Project endpoints (Modification Requests)
   PROJECTS: {
     LIST: "/api/v1/projects/",
     DETAIL: (id: string) => `/api/v1/projects/${id}/`,
+    CREATE: "/api/v1/projects/",
+    UPDATE: (id: string) => `/api/v1/projects/${id}/`,
+    DELETE: (id: string) => `/api/v1/projects/${id}/`,
   },
 
   // Appointment endpoints
