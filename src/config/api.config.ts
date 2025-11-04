@@ -2,10 +2,57 @@
  * API Configuration
  * Centralized API configuration using Nginx as reverse proxy
  */
+import axios from "axios";
 
 // API Base URL - uses Nginx reverse proxy
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+
+// Token storage keys
+export const TOKEN_STORAGE_KEY = "access_token";
+export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
+
+// Request timeout
+export const REQUEST_TIMEOUT = 30000; // 30 seconds
+
+// Create axios instance with base configuration
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: REQUEST_TIMEOUT,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Request interceptor to add JWT token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - redirect to login
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -78,11 +125,17 @@ export const API_ENDPOINTS = {
   CHATBOT: {
     SEND_MESSAGE: "/api/v1/chatbot/message/",
   },
+
+  // Admin endpoints
+  ADMIN: {
+    USERS: "/api/v1/admin/users/",
+    USER_DETAIL: (id: string) => `/api/v1/admin/users/${id}/`,
+    CREATE_USER: "/api/v1/admin/users/create/",
+    UPDATE_USER: (id: string) => `/api/v1/admin/users/${id}/update/`,
+    DELETE_USER: (id: string) => `/api/v1/admin/users/${id}/delete/`,
+    CHANGE_ROLE: (id: string) => `/api/v1/admin/users/${id}/change-role/`,
+    TOGGLE_STATUS: (id: string) => `/api/v1/admin/users/${id}/toggle-status/`,
+    STATISTICS: "/api/v1/admin/statistics/",
+    HEALTH: "/api/v1/admin/health/",
+  },
 };
-
-// Request timeout
-export const REQUEST_TIMEOUT = 30000; // 30 seconds
-
-// Token storage keys
-export const TOKEN_STORAGE_KEY = "access_token";
-export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
