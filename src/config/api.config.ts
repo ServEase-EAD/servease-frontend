@@ -2,10 +2,57 @@
  * API Configuration
  * Centralized API configuration using Nginx as reverse proxy
  */
+import axios from "axios";
 
-// API Base URL - uses Nginx reverse proxy
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+// Token storage keys
+export const TOKEN_STORAGE_KEY = "access_token";
+export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
+
+// Request timeout
+export const REQUEST_TIMEOUT = 30000; // 30 seconds
+
+// 🌐 Base URL for Nginx API Gateway
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+
+// Create axios instance with base configuration
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: REQUEST_TIMEOUT,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true, // Important for CORS
+});
+
+// Request interceptor to add JWT token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - redirect to login
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -42,6 +89,45 @@ export const API_ENDPOINTS = {
   EMPLOYEES: {
     LIST: "/api/v1/employees/",
     DETAIL: (id: string) => `/api/v1/employees/${id}/`,
+    PROFILE: "/api/v1/employees/profile/",
+    UPDATE_PROFILE: "/api/v1/employees/profile/update/",
+    CHANGE_PASSWORD: "/api/v1/employees/profile/password/",
+    TASKS: {
+      LIST: "/api/v1/employees/assigned-tasks/",
+      DETAIL: (id: string) => `/api/v1/employees/assigned-tasks/${id}/`,
+      UPDATE_STATUS: (id: string) => `/api/v1/employees/assigned-tasks/${id}/status/`,
+    },
+    TIME_LOGS: {
+      LIST: "/api/v1/employees/time-logs/",
+      CREATE: "/api/v1/employees/time-logs/create/",
+      UPDATE: (id: string) => `/api/v1/employees/time-logs/${id}/`,
+    },
+    SERVICE_REQUESTS: {
+      LIST: "/api/v1/employees/service-requests/",
+      DETAIL: (id: string) => `/api/v1/employees/service-requests/${id}/`,
+      ACCEPT: (id: string) => `/api/v1/employees/service-requests/${id}/accept/`,
+      REJECT: (id: string) => `/api/v1/employees/service-requests/${id}/reject/`,
+    }
+  },
+
+  // TimeLog endpoints - Uses JWT token for employee identification
+  TIMELOGS: {
+    // Employee-specific endpoints (employee_id from JWT token)
+    LIST: "/api/v1/employees/timelogs/",
+    DETAIL: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    CREATE: "/api/v1/employees/timelogs/",
+    UPDATE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    DELETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    
+    // Actions on time logs
+    START: (logId: string) => `/api/v1/employees/timelogs/${logId}/start/`,
+    PAUSE: (logId: string) => `/api/v1/employees/timelogs/${logId}/pause/`,
+    COMPLETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/complete/`,
+    
+    // Employee logs and stats
+    EMPLOYEE_LOGS: "/api/v1/employees/timelogs/logs/",
+    STATS: "/api/v1/employees/timelogs/stats/",
+    DAILY_TOTALS: "/api/v1/employees/timelogs/daily-totals/",
   },
 
   // Vehicle endpoints
@@ -78,11 +164,20 @@ export const API_ENDPOINTS = {
   CHATBOT: {
     SEND_MESSAGE: "/api/v1/chatbot/message/",
   },
+
+  // Admin endpoints
+  ADMIN: {
+    USERS: "/api/v1/admin/users/",
+    USER_DETAIL: (id: string) => `/api/v1/admin/users/${id}/`,
+    CREATE_USER: "/api/v1/admin/users/create/",
+    UPDATE_USER: (id: string) => `/api/v1/admin/users/${id}/update/`,
+    DELETE_USER: (id: string) => `/api/v1/admin/users/${id}/delete/`,
+    CHANGE_ROLE: (id: string) => `/api/v1/admin/users/${id}/change-role/`,
+    TOGGLE_STATUS: (id: string) => `/api/v1/admin/users/${id}/toggle-status/`,
+    STATISTICS: "/api/v1/admin/statistics/",
+    HEALTH: "/api/v1/admin/health/",
+  },
 };
 
-// Request timeout
-export const REQUEST_TIMEOUT = 30000; // 30 seconds
-
-// Token storage keys
-export const TOKEN_STORAGE_KEY = "access_token";
-export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
+// Export default apiClient for backward compatibility
+export default apiClient;
