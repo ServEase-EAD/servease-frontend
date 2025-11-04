@@ -49,10 +49,13 @@ export const API_ENDPOINTS = {
   EMPLOYEES: {
     LIST: "/api/v1/employees/",
     DETAIL: (id: string) => `/api/v1/employees/${id}/`,
+    PROFILE: "/api/v1/employees/profile/",
+    UPDATE_PROFILE: "/api/v1/employees/profile/update/",
+    CHANGE_PASSWORD: "/api/v1/employees/profile/password/",
     TASKS: {
-      LIST: "/api/v1/employees/tasks/",
-      DETAIL: (id: string) => `/api/v1/employees/tasks/${id}/`,
-      UPDATE_STATUS: (id: string) => `/api/v1/employees/tasks/${id}/status/`,
+      LIST: "/api/v1/employees/assigned-tasks/",
+      DETAIL: (id: string) => `/api/v1/employees/assigned-tasks/${id}/`,
+      UPDATE_STATUS: (id: string) => `/api/v1/employees/assigned-tasks/${id}/status/`,
     },
     TIME_LOGS: {
       LIST: "/api/v1/employees/time-logs/",

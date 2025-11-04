@@ -100,62 +100,51 @@ const Profile: React.FC = () => {
   });
 
   useEffect(() => {
-    // Try to load cached data first
-    const cachedProfile = localStorage.getItem('userProfile');
-    if (cachedProfile) {
-      try {
-        const parsedProfile = JSON.parse(cachedProfile);
-        setProfile(parsedProfile);
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error parsing cached profile:', err);
-      }
-    }
-    
-    // Then fetch fresh data
+    // Fetch fresh data on component mount
     fetchProfileData();
   }, []);
 
   const fetchProfileData = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get(API_ENDPOINTS.AUTH.PROFILE);
+      setError(null); // Clear any previous errors
+      
+      // Fetch from employee service instead of auth service
+      const response = await api.get(API_ENDPOINTS.EMPLOYEES.PROFILE);
       const profileData = response.data;
       
+      console.log('Fetched profile data:', profileData);
+      
       if (profileData) {
-        // Get current data from localStorage or use empty object
-        const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        
         const updatedProfile: EmployeeProfile = {
           // Basic Information
-          fullName: profileData.full_name || currentProfile.fullName || '',
-          email: profileData.email || currentProfile.email || '',
-          phoneNumber: profileData.phone_number || currentProfile.phoneNumber || '',
-          gender: (profileData.gender || currentProfile.gender) as 'Male' | 'Female' | 'Other' | undefined,
-          dateOfBirth: profileData.date_of_birth || currentProfile.dateOfBirth || '',
+          fullName: profileData.full_name || '',
+          email: profileData.email || '',
+          phoneNumber: profileData.phone_number || '',
+          gender: profileData.gender as 'Male' | 'Female' | 'Other' | undefined,
+          dateOfBirth: profileData.date_of_birth || '',
 
           // Employment Information
-          employeeId: profileData.employee_id || currentProfile.employeeId || '',
-          role: profileData.role || currentProfile.role || '',
-          department: profileData.department || currentProfile.department || '',
-          joiningDate: profileData.joining_date || currentProfile.joiningDate || '',
-          employmentType: (profileData.employment_type || currentProfile.employmentType) as 'Full-Time' | 'Part-Time' | 'Contract' | undefined,
-          supervisor: profileData.supervisor || currentProfile.supervisor || '',
+          employeeId: profileData.employee_id || '',
+          role: profileData.role || '',
+          department: profileData.department || '',
+          joiningDate: profileData.joining_date || '',
+          employmentType: profileData.employment_type as 'Full-Time' | 'Part-Time' | 'Contract' | undefined,
+          supervisor: profileData.supervisor || '',
 
           // System Information
-          accountCreated: profileData.created_at || currentProfile.accountCreated || new Date().toISOString(),
-          lastLogin: profileData.last_login || currentProfile.lastLogin || '',
+          accountCreated: profileData.account_created || new Date().toISOString(),
+          lastLogin: profileData.last_login || '',
           status: profileData.is_active ? 'Active' : 'Suspended',
-          accessRole: profileData.user_role || currentProfile.accessRole || 'Employee',
+          accessRole: profileData.user_role || profileData.access_role || 'Employee',
 
           // Address Information
-          addressLine1: profileData.address_line1 || currentProfile.addressLine1 || '',
-          addressLine2: profileData.address_line2 || currentProfile.addressLine2 || '',
-          city: profileData.city || currentProfile.city || '',
-          postalCode: profileData.postal_code || currentProfile.postalCode || ''
+          addressLine1: profileData.address_line1 || '',
+          addressLine2: profileData.address_line2 || '',
+          city: profileData.city || '',
+          postalCode: profileData.postal_code || ''
         };
         
-        console.log('Fetched profile data:', profileData);
         console.log('Updated profile:', updatedProfile);
         
         // Update local state
@@ -166,18 +155,30 @@ const Profile: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error fetching profile:', err);
-      // Try to load from cache if API fails
+      console.error('Error response:', err.response);
+      
+      // Only show cached data message if we actually have cached data
       const cachedProfile = localStorage.getItem('userProfile');
       if (cachedProfile) {
         try {
           const parsedProfile = JSON.parse(cachedProfile);
           setProfile(parsedProfile);
-          console.log('Loaded profile from cache:', parsedProfile);
+          console.log('Loaded profile from cache due to error:', parsedProfile);
+          // Only show this specific message if there was a network error
+          if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
+            setError('Unable to fetch latest data. Showing cached profile.');
+          } else {
+            const errorMessage = err.response?.data?.detail || err.response?.data?.message || 'Failed to fetch profile data';
+            setError(errorMessage);
+          }
         } catch (parseErr) {
           console.error('Error parsing cached profile:', parseErr);
+          setError('Failed to load profile data. Please try logging in again.');
         }
+      } else {
+        const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to fetch profile data';
+        setError(errorMessage);
       }
-      setError(err.response?.data?.message || 'Failed to fetch profile data');
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +192,6 @@ const Profile: React.FC = () => {
     try {
       setIsLoading(true);
       const updateData = {
-        full_name: profile.fullName,
         phone_number: profile.phoneNumber,
         gender: profile.gender,
         date_of_birth: profile.dateOfBirth,
@@ -201,27 +201,14 @@ const Profile: React.FC = () => {
         postal_code: profile.postalCode || ''
       };
       
-      const response = await api.put(API_ENDPOINTS.AUTH.UPDATE_PROFILE, updateData);
+      // Use employee service endpoint instead of auth service
+      await api.put(API_ENDPOINTS.EMPLOYEES.UPDATE_PROFILE, updateData);
       
-      if (response.data) {
-        // Keep the current state and update only what's returned from the server
-        const updatedProfile = {
-          ...profile,
-          fullName: response.data.full_name || profile.fullName,
-          phoneNumber: response.data.phone_number || profile.phoneNumber,
-          gender: response.data.gender || profile.gender,
-          dateOfBirth: response.data.date_of_birth || profile.dateOfBirth,
-          addressLine1: response.data.address_line1 || profile.addressLine1,
-          addressLine2: response.data.address_line2 || profile.addressLine2,
-          city: response.data.city || profile.city,
-          postalCode: response.data.postal_code || profile.postalCode
-        };
-        
-        setProfile(updatedProfile);
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
-        setSuccessMessage('Profile updated successfully');
-        setIsEditing(false);
-      }
+      // Fetch the complete updated profile from the server
+      await fetchProfileData();
+      
+      setSuccessMessage('Profile updated successfully');
+      setIsEditing(false);
     } catch (err: any) {
       console.error('Error updating profile:', err);
       setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
@@ -238,9 +225,11 @@ const Profile: React.FC = () => {
 
     try {
       setIsLoading(true);
-      await api.post(`${API_ENDPOINTS.AUTH.PROFILE}/password`, {
+      // Use employee service endpoint
+      await api.post(API_ENDPOINTS.EMPLOYEES.CHANGE_PASSWORD, {
         current_password: currentPassword,
-        new_password: newPassword
+        new_password: newPassword,
+        confirm_password: confirmPassword
       });
       setIsPasswordDialogOpen(false);
       setSuccessMessage('Password updated successfully');
@@ -319,8 +308,8 @@ const Profile: React.FC = () => {
                 fullWidth
                 label="Full Name"
                 value={profile.fullName}
-                onChange={(e) => setProfile({...profile, fullName: e.target.value})}
-                disabled={!isEditing}
+                disabled
+                helperText="Full name cannot be changed"
               />
               <TextField
                 fullWidth
