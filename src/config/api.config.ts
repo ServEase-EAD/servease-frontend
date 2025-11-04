@@ -44,6 +44,26 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/api/v1/employees/${id}/`,
   },
 
+  // TimeLog endpoints - Uses JWT token for employee identification
+  TIMELOGS: {
+    // Employee-specific endpoints (employee_id from JWT token)
+    LIST: "/api/v1/employees/timelogs/",
+    DETAIL: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    CREATE: "/api/v1/employees/timelogs/",
+    UPDATE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    DELETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    
+    // Actions on time logs
+    START: (logId: string) => `/api/v1/employees/timelogs/${logId}/start/`,
+    PAUSE: (logId: string) => `/api/v1/employees/timelogs/${logId}/pause/`,
+    COMPLETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/complete/`,
+    
+    // Employee logs and stats
+    EMPLOYEE_LOGS: "/api/v1/employees/timelogs/logs/",
+    STATS: "/api/v1/employees/timelogs/stats/",
+    DAILY_TOTALS: "/api/v1/employees/timelogs/daily-totals/",
+  },
+
   // Vehicle endpoints
   VEHICLES: {
     LIST: "/api/v1/vehicles/",

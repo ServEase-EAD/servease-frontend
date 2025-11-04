@@ -185,3 +185,105 @@ export interface Project {
   endDate?: string;
   // Add other project fields
 }
+
+// TimeLog related types
+export type TimeLogStatus = "inprogress" | "completed" | "paused";
+export type TaskType = "project" | "appointment";
+
+export interface TimeLog {
+  log_id: string;
+  employee_id: number;
+  shift?: string | null;
+  task_type: TaskType;
+  project_id?: string | null;
+  appointment_id?: string | null;
+  description: string;
+  vehicle?: string;
+  service?: string;
+  log_date: string;
+  start_time: string;
+  end_time?: string | null;
+  duration_seconds: number;
+  duration: string;
+  status: TimeLogStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTimeLogRequest {
+  task_type: TaskType;
+  project_id?: string;
+  appointment_id?: string;
+  description: string;
+  vehicle?: string;
+  service?: string;
+  start_time: string;
+  status?: TimeLogStatus;
+}
+
+export interface UpdateTimeLogRequest {
+  task_type?: TaskType;
+  project_id?: string;
+  appointment_id?: string;
+  description?: string;
+  vehicle?: string;
+  service?: string;
+  start_time?: string;
+  end_time?: string;
+  duration_seconds?: number;
+  status?: TimeLogStatus;
+}
+
+export interface DailyTimeTotal {
+  id: string;
+  employee_id: number;
+  log_date: string;
+  total_hours: number;
+  total_hours_formatted: string;
+  total_seconds: number;
+  total_tasks: number;
+  project_tasks_count: number;
+  appointment_tasks_count: number;
+  project_hours: number;
+  appointment_hours: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimeLogStats {
+  employee_id: number;
+  total_hours: string;
+  total_entries: number;
+  avg_hours_per_day: string;
+  days_worked: number;
+  breakdown: {
+    project_tasks: number;
+    appointment_tasks: number;
+  };
+  filter: string;
+}
+
+export interface EmployeeLogsResponse {
+  message?: string;
+  employee_id?: number;
+  filter: string;
+  data: {
+    [date: string]: TimeLog[];
+  };
+}
+
+export interface DailyTotalsResponse {
+  employee_id: number;
+  date_range: {
+    start_date?: string;
+    end_date?: string;
+  };
+  summary: {
+    total_hours: string;
+    total_tasks: number;
+    days_worked: number;
+  };
+  daily_totals: DailyTimeTotal[];
+}
+
+export type TimeFilterOption = "all_time" | "today" | "this_week" | "this_month" | "last_month";
