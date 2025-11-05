@@ -1,11 +1,10 @@
-import React from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Grid,
 } from '@mui/material';
+
 import {
   Assignment as TaskIcon,
   People as CustomerIcon,
@@ -50,31 +49,33 @@ const DashboardContent: React.FC = () => {
 
   return (
     <Box>
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {summaryCards.map((card, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  {card.icon}
-                  <Typography variant="h6" sx={{ ml: 1 }}>
-                    {card.title}
-                  </Typography>
-                </Box>
-                <Typography variant="h4" gutterBottom>
-                  {card.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {card.description}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {/* ✅ Summary Cards */}
+      {/* ✅ Summary Cards */}
+{/* Summary Cards */}
+<Box sx={{ mb: 4, display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' } }}>
+    {summaryCards.map((card, index) => (
+      <Box key={index}>
+        <Card>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            {card.icon}
+            <Typography variant="h6" sx={{ ml: 1 }}>
+              {card.title}
+            </Typography>
+          </Box>
+          <Typography variant="h4" gutterBottom>
+            {card.value}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {card.description}
+          </Typography>
+        </CardContent>
+      </Card>
+      </Box>
+    ))}
+  </Box>
 
-      {/* Recent Activity */}
+      {/* ✅ Recent Activity */}
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
@@ -105,11 +106,25 @@ const DashboardContent: React.FC = () => {
                     px: 1.5,
                     py: 0.5,
                     borderRadius: 1,
-                    bgcolor: activity.status === 'success' ? 'success.light' : 'info.light',
-                    color: activity.status === 'success' ? 'success.main' : 'info.main',
+                    bgcolor:
+                      activity.status === 'success'
+                        ? 'success.light'
+                        : activity.status === 'info'
+                        ? 'info.light'
+                        : 'grey.200',
+                    color:
+                      activity.status === 'success'
+                        ? 'success.main'
+                        : activity.status === 'info'
+                        ? 'info.main'
+                        : 'text.secondary',
                   }}
                 >
-                  {activity.status === 'success' ? 'Completed' : 'In Progress'}
+                  {activity.status === 'success'
+                    ? 'Completed'
+                    : activity.status === 'info'
+                    ? 'In Progress'
+                    : 'Updated'}
                 </Typography>
               </Box>
             ))}
