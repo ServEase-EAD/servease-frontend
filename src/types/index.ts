@@ -150,16 +150,126 @@ export interface Vehicle {
 }
 
 // Appointment related types
+export type AppointmentType =
+  | "maintenance"
+  | "repair"
+  | "inspection"
+  | "diagnostic"
+  | "emergency";
+export type AppointmentStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
 export interface Appointment {
   id: string;
-  customerId: string;
-  vehicleId: string;
-  employeeId?: string;
-  scheduledDate: string;
-  status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
-  serviceType: string;
-  notes?: string;
-  // Add other appointment fields
+  customer_id: string;
+  vehicle_id: string;
+  assigned_employee_id?: string | null;
+  appointment_type: AppointmentType;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  status: AppointmentStatus;
+  service_description?: string;
+  customer_notes?: string;
+  internal_notes?: string;
+  estimated_cost?: number | null;
+  created_by_user_id: string;
+  created_at: string;
+  updated_at: string;
+  cancelled_at?: string | null;
+  completed_at?: string | null;
+  // Computed fields from backend
+  customer_name?: string;
+  vehicle_details?: string;
+  employee_name?: string;
+  time_until_appointment?: string;
+}
+
+export interface CreateAppointmentData {
+  customer_id: string;
+  vehicle_id: string;
+  appointment_type: AppointmentType;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes?: number;
+  service_description?: string;
+  customer_notes?: string;
+  estimated_cost?: number;
+  created_by_user_id?: string; // Added automatically from JWT token
+}
+
+export interface UpdateAppointmentData {
+  appointment_type?: AppointmentType;
+  scheduled_date?: string;
+  scheduled_time?: string;
+  duration_minutes?: number;
+  service_description?: string;
+  customer_notes?: string;
+  internal_notes?: string;
+  estimated_cost?: number;
+}
+
+export interface RescheduleAppointmentData {
+  new_date: string;
+  new_time: string;
+  reason?: string;
+}
+
+export interface AssignEmployeeData {
+  employee_id: string;
+}
+
+export interface StatusUpdateData {
+  reason?: string;
+}
+
+export interface TimeSlot {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  max_concurrent_appointments: number;
+  available_capacity?: number;
+}
+
+export interface AppointmentHistory {
+  id: string;
+  appointment_id: string;
+  changed_by_user_id: string;
+  previous_status: string;
+  new_status: string;
+  change_reason?: string;
+  changed_at: string;
+}
+
+export interface AppointmentStats {
+  total_appointments: number;
+  pending: number;
+  confirmed: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+  today: number;
+  completed_today: number;
+  upcoming: number;
+  by_type: Record<AppointmentType, number>;
+}
+
+export interface AvailableSlot {
+  date: string;
+  time: string;
+  available: boolean;
+}
+
+export interface AvailableSlotsResponse {
+  count: number;
+  slots: AvailableSlot[];
 }
 
 // Notification related types
@@ -286,4 +396,9 @@ export interface DailyTotalsResponse {
   daily_totals: DailyTimeTotal[];
 }
 
-export type TimeFilterOption = "all_time" | "today" | "this_week" | "this_month" | "last_month";
+export type TimeFilterOption =
+  | "all_time"
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "last_month";
