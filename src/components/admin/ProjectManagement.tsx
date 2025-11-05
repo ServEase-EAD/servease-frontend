@@ -147,7 +147,14 @@ const ProjectManagement: React.FC = () => {
         "Pending:",
         pendingProjs.length
       );
-      console.log("Pending projects:", pendingProjs.map(p => ({ title: p.title, approval_status: p.approval_status, status: p.status })));
+      console.log(
+        "Pending projects:",
+        pendingProjs.map((p) => ({
+          title: p.title,
+          approval_status: p.approval_status,
+          status: p.status,
+        }))
+      );
       setProjects(allProjects);
       setPendingProjects(pendingProjs);
       setEmployees(employeesData);
@@ -661,7 +668,9 @@ const ProjectManagement: React.FC = () => {
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => handleDeleteTask(task.task_id || task.id!)}
+                        onClick={() =>
+                          handleDeleteTask(task.task_id || task.id!)
+                        }
                         title="Delete"
                       >
                         <Delete />
@@ -1512,7 +1521,9 @@ const ProjectManagement: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => handleDeleteTask(task.task_id || task.id!)}
+                                onClick={() =>
+                                  handleDeleteTask(task.task_id || task.id!)
+                                }
                                 title="Delete Task"
                               >
                                 <Delete />

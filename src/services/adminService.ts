@@ -305,8 +305,8 @@ export const getAllProjects = async (params?: {
   customer_id?: string;
   assigned_employee_id?: string;
 }): Promise<Project[]> => {
-  const response = await apiClient.get("/api/v1/admin/projects/", { 
-    params: { ...params, _t: Date.now() } // Cache busting
+  const response = await apiClient.get("/api/v1/admin/projects/", {
+    params: { ...params, _t: Date.now() }, // Cache busting
   });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
