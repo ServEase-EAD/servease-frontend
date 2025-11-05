@@ -155,28 +155,25 @@ export const API_ENDPOINTS = {
 
   // Appointment endpoints
   APPOINTMENTS: {
-    LIST: "/api/v1/appointments/appointments/",
-    DETAIL: (id: string) => `/api/v1/appointments/appointments/${id}/`,
-    CREATE: "/api/v1/appointments/appointments/",
-    UPDATE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
-    DELETE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
+    LIST: "/api/v1/appointments/",
+    DETAIL: (id: string) => `/api/v1/appointments/${id}/`,
+    CREATE: "/api/v1/appointments/",
+    UPDATE: (id: string) => `/api/v1/appointments/${id}/`,
+    DELETE: (id: string) => `/api/v1/appointments/${id}/`,
     // Actions
-    CONFIRM: (id: string) => `/api/v1/appointments/appointments/${id}/confirm/`,
-    START: (id: string) => `/api/v1/appointments/appointments/${id}/start/`,
-    COMPLETE: (id: string) =>
-      `/api/v1/appointments/appointments/${id}/complete/`,
-    CANCEL: (id: string) => `/api/v1/appointments/appointments/${id}/cancel/`,
-    RESCHEDULE: (id: string) =>
-      `/api/v1/appointments/appointments/${id}/reschedule/`,
-    ASSIGN: (id: string) => `/api/v1/appointments/appointments/${id}/assign/`,
+    CONFIRM: (id: string) => `/api/v1/appointments/${id}/confirm/`,
+    START: (id: string) => `/api/v1/appointments/${id}/start/`,
+    COMPLETE: (id: string) => `/api/v1/appointments/${id}/complete/`,
+    CANCEL: (id: string) => `/api/v1/appointments/${id}/cancel/`,
+    RESCHEDULE: (id: string) => `/api/v1/appointments/${id}/reschedule/`,
+    ASSIGN: (id: string) => `/api/v1/appointments/${id}/assign/`,
     // Queries
-    AVAILABLE_SLOTS: "/api/v1/appointments/appointments/available_slots/",
-    STATS: "/api/v1/appointments/appointments/stats/",
-    HISTORY: (id: string) => `/api/v1/appointments/appointments/${id}/history/`,
-    CUSTOMER_APPOINTMENTS:
-      "/api/v1/appointments/appointments/customer_appointments/",
-    EMPLOYEE_SCHEDULE: "/api/v1/appointments/appointments/employee_schedule/",
-    VEHICLE_HISTORY: "/api/v1/appointments/appointments/vehicle_history/",
+    AVAILABLE_SLOTS: "/api/v1/appointments/available_slots/",
+    STATS: "/api/v1/appointments/stats/",
+    HISTORY: (id: string) => `/api/v1/appointments/${id}/history/`,
+    CUSTOMER_APPOINTMENTS: "/api/v1/appointments/customer_appointments/",
+    EMPLOYEE_SCHEDULE: "/api/v1/appointments/employee_schedule/",
+    VEHICLE_HISTORY: "/api/v1/appointments/vehicle_history/",
   },
 
   // TimeSlot endpoints
