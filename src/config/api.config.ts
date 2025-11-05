@@ -155,28 +155,25 @@ export const API_ENDPOINTS = {
 
   // Appointment endpoints
   APPOINTMENTS: {
-    LIST: "/api/v1/appointments/appointments/",
-    DETAIL: (id: string) => `/api/v1/appointments/appointments/${id}/`,
-    CREATE: "/api/v1/appointments/appointments/",
-    UPDATE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
-    DELETE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
+    LIST: "/api/v1/appointments/",
+    DETAIL: (id: string) => `/api/v1/appointments/${id}/`,
+    CREATE: "/api/v1/appointments/",
+    UPDATE: (id: string) => `/api/v1/appointments/${id}/`,
+    DELETE: (id: string) => `/api/v1/appointments/${id}/`,
     // Actions
-    CONFIRM: (id: string) => `/api/v1/appointments/appointments/${id}/confirm/`,
-    START: (id: string) => `/api/v1/appointments/appointments/${id}/start/`,
-    COMPLETE: (id: string) =>
-      `/api/v1/appointments/appointments/${id}/complete/`,
-    CANCEL: (id: string) => `/api/v1/appointments/appointments/${id}/cancel/`,
-    RESCHEDULE: (id: string) =>
-      `/api/v1/appointments/appointments/${id}/reschedule/`,
-    ASSIGN: (id: string) => `/api/v1/appointments/appointments/${id}/assign/`,
+    CONFIRM: (id: string) => `/api/v1/appointments/${id}/confirm/`,
+    START: (id: string) => `/api/v1/appointments/${id}/start/`,
+    COMPLETE: (id: string) => `/api/v1/appointments/${id}/complete/`,
+    CANCEL: (id: string) => `/api/v1/appointments/${id}/cancel/`,
+    RESCHEDULE: (id: string) => `/api/v1/appointments/${id}/reschedule/`,
+    ASSIGN: (id: string) => `/api/v1/appointments/${id}/assign/`,
     // Queries
-    AVAILABLE_SLOTS: "/api/v1/appointments/appointments/available_slots/",
-    STATS: "/api/v1/appointments/appointments/stats/",
-    HISTORY: (id: string) => `/api/v1/appointments/appointments/${id}/history/`,
-    CUSTOMER_APPOINTMENTS:
-      "/api/v1/appointments/appointments/customer_appointments/",
-    EMPLOYEE_SCHEDULE: "/api/v1/appointments/appointments/employee_schedule/",
-    VEHICLE_HISTORY: "/api/v1/appointments/appointments/vehicle_history/",
+    AVAILABLE_SLOTS: "/api/v1/appointments/available_slots/",
+    STATS: "/api/v1/appointments/stats/",
+    HISTORY: (id: string) => `/api/v1/appointments/${id}/history/`,
+    CUSTOMER_APPOINTMENTS: "/api/v1/appointments/customer_appointments/",
+    EMPLOYEE_SCHEDULE: "/api/v1/appointments/employee_schedule/",
+    VEHICLE_HISTORY: "/api/v1/appointments/vehicle_history/",
   },
 
   // TimeSlot endpoints
@@ -202,6 +199,12 @@ export const API_ENDPOINTS = {
 
   // Admin endpoints
   ADMIN: {
+    // Health & Stats
+    HEALTH: "/api/v1/admin/health/",
+    STATISTICS: "/api/v1/admin/statistics/",
+    DASHBOARD_STATS: "/api/v1/admin/dashboard/stats/",
+
+    // User Management
     USERS: "/api/v1/admin/users/",
     USER_DETAIL: (id: string) => `/api/v1/admin/users/${id}/`,
     CREATE_USER: "/api/v1/admin/users/create/",
@@ -209,8 +212,56 @@ export const API_ENDPOINTS = {
     DELETE_USER: (id: string) => `/api/v1/admin/users/${id}/delete/`,
     CHANGE_ROLE: (id: string) => `/api/v1/admin/users/${id}/change-role/`,
     TOGGLE_STATUS: (id: string) => `/api/v1/admin/users/${id}/toggle-status/`,
-    STATISTICS: "/api/v1/admin/statistics/",
-    HEALTH: "/api/v1/admin/health/",
+
+    // Appointment Management
+    APPOINTMENTS: "/api/v1/admin/appointments/",
+    PENDING_APPOINTMENTS: "/api/v1/admin/appointments/pending/",
+    APPOINTMENT_DETAIL: (id: string) => `/api/v1/admin/appointments/${id}/`,
+    APPROVE_APPOINTMENT: (id: string) =>
+      `/api/v1/admin/appointments/${id}/approve/`,
+    REJECT_APPOINTMENT: (id: string) =>
+      `/api/v1/admin/appointments/${id}/reject/`,
+    ASSIGN_APPOINTMENT: (id: string) =>
+      `/api/v1/admin/appointments/${id}/assign/`,
+    RESCHEDULE_APPOINTMENT: (id: string) =>
+      `/api/v1/admin/appointments/${id}/reschedule/`,
+    APPOINTMENT_TASKS: (id: string) =>
+      `/api/v1/admin/appointments/${id}/tasks/`,
+    CREATE_APPOINTMENT_TASK: (id: string) =>
+      `/api/v1/admin/appointments/${id}/tasks/create/`,
+    APPOINTMENT_STATISTICS: "/api/v1/admin/appointments/statistics/",
+
+    // Project Management
+    PROJECTS: "/api/v1/admin/projects/",
+    PENDING_PROJECTS: "/api/v1/admin/projects/pending/",
+    PROJECT_PROGRESS: "/api/v1/admin/projects/progress/",
+    PROJECT_DETAIL: (id: string) => `/api/v1/admin/projects/${id}/`,
+    APPROVE_PROJECT: (id: string) => `/api/v1/admin/projects/${id}/approve/`,
+    REJECT_PROJECT: (id: string) => `/api/v1/admin/projects/${id}/reject/`,
+    ASSIGN_PROJECT: (id: string) =>
+      `/api/v1/admin/projects/${id}/assign-employee/`,
+    PROJECT_TASKS: (id: string) => `/api/v1/admin/projects/${id}/tasks/`,
+
+    // Task Management
+    TASKS: "/api/v1/admin/tasks/",
+    CREATE_TASK: "/api/v1/admin/tasks/create/",
+    ASSIGN_TASK: "/api/v1/admin/tasks/assign/",
+    UNASSIGN_TASK: "/api/v1/admin/tasks/unassign/",
+    TASK_DETAIL: (id: string) => `/api/v1/admin/tasks/${id}/`,
+    UPDATE_TASK: (id: string) => `/api/v1/admin/tasks/${id}/update/`,
+    DELETE_TASK: (id: string) => `/api/v1/admin/tasks/${id}/delete/`,
+
+    // Vehicle Management
+    VEHICLES: "/api/v1/admin/vehicles/",
+    VEHICLE_DETAIL: (id: string) => `/api/v1/admin/vehicles/${id}/`,
+    VEHICLES_BY_EMPLOYEE: (id: string) =>
+      `/api/v1/admin/vehicles/employee/${id}/`,
+    VEHICLES_BY_SERVICE_TYPE: "/api/v1/admin/vehicles/by-service-type/",
+
+    // Employee Workload
+    EMPLOYEES_WORKLOAD: "/api/v1/admin/employees/workload/",
+    EMPLOYEE_WORKLOAD: (id: string) =>
+      `/api/v1/admin/employees/${id}/workload/`,
   },
 };
 

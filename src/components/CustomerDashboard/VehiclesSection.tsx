@@ -170,9 +170,23 @@ const VehiclesSection: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error("Error fetching vehicles:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to load vehicles"
-      );
+      
+      // Handle API errors
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as any;
+        if (apiError.response?.data) {
+          const errorData = apiError.response.data;
+          const errorMessage = errorData.detail || errorData.message || "Failed to load vehicles";
+          showSnackbar(errorMessage, "error");
+        } else {
+          showSnackbar("Failed to load vehicles. Please try again.", "error");
+        }
+      } else {
+        // Handle network or other errors
+        const errorMessage = err instanceof Error ? err.message : "Failed to load vehicles";
+        showSnackbar(errorMessage, "error");
+      }
+      
       setVehicles([]);
     } finally {
       setLoading(false);
@@ -200,9 +214,42 @@ const VehiclesSection: React.FC = () => {
       showSnackbar("Vehicle created successfully!", "success");
     } catch (err) {
       console.error("Error creating vehicle:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to create vehicle"
-      );
+      
+      // Handle API validation errors
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as any;
+        if (apiError.response?.data) {
+          const errorData = apiError.response.data;
+          
+          // Handle field-specific validation errors (check for 'errors' object first)
+          if (errorData.errors && typeof errorData.errors === 'object') {
+            const fieldErrors = Object.entries(errorData.errors).map(([field, messages]) => {
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+              return `${fieldName}: ${message}`;
+            });
+            showSnackbar(fieldErrors.join('. '), "error");
+          } else if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
+            // Fallback for other field-specific errors
+            const fieldErrors = Object.entries(errorData).map(([field, messages]) => {
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+              return `${fieldName}: ${message}`;
+            });
+            showSnackbar(fieldErrors.join('. '), "error");
+          } else {
+            // Handle general API errors
+            const errorMessage = errorData.detail || errorData.message || "Failed to create vehicle";
+            showSnackbar(errorMessage, "error");
+          }
+        } else {
+          showSnackbar("Failed to create vehicle. Please try again.", "error");
+        }
+      } else {
+        // Handle network or other errors
+        const errorMessage = err instanceof Error ? err.message : "Failed to create vehicle";
+        showSnackbar(errorMessage, "error");
+      }
     }
   };
 
@@ -233,9 +280,42 @@ const VehiclesSection: React.FC = () => {
       showSnackbar("Vehicle updated successfully!", "success");
     } catch (err) {
       console.error("Error updating vehicle:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to update vehicle"
-      );
+      
+      // Handle API validation errors
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as any;
+        if (apiError.response?.data) {
+          const errorData = apiError.response.data;
+          
+          // Handle field-specific validation errors (check for 'errors' object first)
+          if (errorData.errors && typeof errorData.errors === 'object') {
+            const fieldErrors = Object.entries(errorData.errors).map(([field, messages]) => {
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+              return `${fieldName}: ${message}`;
+            });
+            showSnackbar(fieldErrors.join('. '), "error");
+          } else if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
+            // Fallback for other field-specific errors
+            const fieldErrors = Object.entries(errorData).map(([field, messages]) => {
+              const message = Array.isArray(messages) ? messages[0] : messages;
+              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+              return `${fieldName}: ${message}`;
+            });
+            showSnackbar(fieldErrors.join('. '), "error");
+          } else {
+            // Handle general API errors
+            const errorMessage = errorData.detail || errorData.message || "Failed to update vehicle";
+            showSnackbar(errorMessage, "error");
+          }
+        } else {
+          showSnackbar("Failed to update vehicle. Please try again.", "error");
+        }
+      } else {
+        // Handle network or other errors
+        const errorMessage = err instanceof Error ? err.message : "Failed to update vehicle";
+        showSnackbar(errorMessage, "error");
+      }
     }
   };
 
@@ -254,10 +334,23 @@ const VehiclesSection: React.FC = () => {
       showSnackbar("Vehicle deleted successfully!", "success");
     } catch (err) {
       console.error("Error deleting vehicle:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to delete vehicle";
-      setError(errorMessage);
-      showSnackbar(errorMessage, "error");
+      
+      // Handle API validation errors
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as any;
+        if (apiError.response?.data) {
+          const errorData = apiError.response.data;
+          const errorMessage = errorData.detail || errorData.message || "Failed to delete vehicle";
+          showSnackbar(errorMessage, "error");
+        } else {
+          showSnackbar("Failed to delete vehicle. Please try again.", "error");
+        }
+      } else {
+        // Handle network or other errors
+        const errorMessage = err instanceof Error ? err.message : "Failed to delete vehicle";
+        showSnackbar(errorMessage, "error");
+      }
+      
       setDeleteConfirmation({ open: false, vehicleId: null });
     }
   };
