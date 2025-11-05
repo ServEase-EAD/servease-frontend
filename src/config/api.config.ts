@@ -12,7 +12,8 @@ export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
 export const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 // 🌐 Base URL for Nginx API Gateway
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:80";
 
 // Create axios instance with base configuration
 export const apiClient = axios.create({
@@ -95,7 +96,8 @@ export const API_ENDPOINTS = {
     TASKS: {
       LIST: "/api/v1/employees/assigned-tasks/",
       DETAIL: (id: string) => `/api/v1/employees/assigned-tasks/${id}/`,
-      UPDATE_STATUS: (id: string) => `/api/v1/employees/assigned-tasks/${id}/status/`,
+      UPDATE_STATUS: (id: string) =>
+        `/api/v1/employees/assigned-tasks/${id}/status/`,
     },
     TIME_LOGS: {
       LIST: "/api/v1/employees/time-logs/",
@@ -105,9 +107,11 @@ export const API_ENDPOINTS = {
     SERVICE_REQUESTS: {
       LIST: "/api/v1/employees/service-requests/",
       DETAIL: (id: string) => `/api/v1/employees/service-requests/${id}/`,
-      ACCEPT: (id: string) => `/api/v1/employees/service-requests/${id}/accept/`,
-      REJECT: (id: string) => `/api/v1/employees/service-requests/${id}/reject/`,
-    }
+      ACCEPT: (id: string) =>
+        `/api/v1/employees/service-requests/${id}/accept/`,
+      REJECT: (id: string) =>
+        `/api/v1/employees/service-requests/${id}/reject/`,
+    },
   },
 
   // TimeLog endpoints - Uses JWT token for employee identification
@@ -118,12 +122,13 @@ export const API_ENDPOINTS = {
     CREATE: "/api/v1/employees/timelogs/",
     UPDATE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
     DELETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
-    
+
     // Actions on time logs
     START: (logId: string) => `/api/v1/employees/timelogs/${logId}/start/`,
     PAUSE: (logId: string) => `/api/v1/employees/timelogs/${logId}/pause/`,
-    COMPLETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/complete/`,
-    
+    COMPLETE: (logId: string) =>
+      `/api/v1/employees/timelogs/${logId}/complete/`,
+
     // Employee logs and stats
     EMPLOYEE_LOGS: "/api/v1/employees/timelogs/logs/",
     STATS: "/api/v1/employees/timelogs/stats/",
@@ -150,8 +155,38 @@ export const API_ENDPOINTS = {
 
   // Appointment endpoints
   APPOINTMENTS: {
-    LIST: "/api/v1/appointments/",
-    DETAIL: (id: string) => `/api/v1/appointments/${id}/`,
+    LIST: "/api/v1/appointments/appointments/",
+    DETAIL: (id: string) => `/api/v1/appointments/appointments/${id}/`,
+    CREATE: "/api/v1/appointments/appointments/",
+    UPDATE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
+    DELETE: (id: string) => `/api/v1/appointments/appointments/${id}/`,
+    // Actions
+    CONFIRM: (id: string) => `/api/v1/appointments/appointments/${id}/confirm/`,
+    START: (id: string) => `/api/v1/appointments/appointments/${id}/start/`,
+    COMPLETE: (id: string) =>
+      `/api/v1/appointments/appointments/${id}/complete/`,
+    CANCEL: (id: string) => `/api/v1/appointments/appointments/${id}/cancel/`,
+    RESCHEDULE: (id: string) =>
+      `/api/v1/appointments/appointments/${id}/reschedule/`,
+    ASSIGN: (id: string) => `/api/v1/appointments/appointments/${id}/assign/`,
+    // Queries
+    AVAILABLE_SLOTS: "/api/v1/appointments/appointments/available_slots/",
+    STATS: "/api/v1/appointments/appointments/stats/",
+    HISTORY: (id: string) => `/api/v1/appointments/appointments/${id}/history/`,
+    CUSTOMER_APPOINTMENTS:
+      "/api/v1/appointments/appointments/customer_appointments/",
+    EMPLOYEE_SCHEDULE: "/api/v1/appointments/appointments/employee_schedule/",
+    VEHICLE_HISTORY: "/api/v1/appointments/appointments/vehicle_history/",
+  },
+
+  // TimeSlot endpoints
+  TIMESLOTS: {
+    LIST: "/api/v1/appointments/time-slots/",
+    DETAIL: (id: string) => `/api/v1/appointments/time-slots/${id}/`,
+    CREATE: "/api/v1/appointments/time-slots/",
+    UPDATE: (id: string) => `/api/v1/appointments/time-slots/${id}/`,
+    DELETE: (id: string) => `/api/v1/appointments/time-slots/${id}/`,
+    BULK_CREATE: "/api/v1/appointments/time-slots/bulk_create/",
   },
 
   // Notification endpoints
