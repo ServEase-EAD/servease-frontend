@@ -34,6 +34,9 @@ import {
   type DashboardStats,
 } from "../../services/adminService";
 import { logout } from "../../services/authService";
+import { getUserFromToken } from "../../services/authService";
+import { NotificationProvider } from "../../contexts/NotificationContext";
+import { NotificationBellMUI } from "../notifications/NotificationBellMUI";
 import AdminDashboard from "../../pages/AdminDashboard";
 import AppointmentManagement from "./AppointmentManagement";
 import ProjectManagement from "./ProjectManagement";
@@ -49,6 +52,10 @@ const EnhancedAdminDashboard: React.FC = () => {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get user information from JWT token for notifications
+  const user = getUserFromToken();
+  const userId = user?.id || null;
 
   useEffect(() => {
     loadDashboardStats();
@@ -406,108 +413,120 @@ const EnhancedAdminDashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems[activeTab]?.label || "Dashboard"}
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<ExitToApp />}
-            onClick={handleLogout}
-            sx={{ display: { xs: "none", sm: "inline-flex" } }}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Box
-        component="nav"
-        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
-      >
-        {/* Mobile drawer */}
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
+    <NotificationProvider userId={userId}>
+      <Box sx={{ display: "flex", minHeight: "100vh" }}>
+        <AppBar
+          position="fixed"
           sx={{
-            display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-            },
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+            ml: { sm: `${DRAWER_WIDTH}px` },
           }}
         >
-          {drawer}
-        </Drawer>
-        {/* Desktop drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-            },
-          }}
-          open
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ flexGrow: 1 }}
+            >
+              {menuItems[activeTab]?.label || "Dashboard"}
+            </Typography>
+            <NotificationBellMUI />
+            <Button
+              color="inherit"
+              startIcon={<ExitToApp />}
+              onClick={handleLogout}
+              sx={{ display: { xs: "none", sm: "inline-flex" }, ml: 1 }}
+            >
+              Logout
+            </Button>
+          </Toolbar>
+        </AppBar>
+
+        <Box
+          component="nav"
+          sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
         >
-          {drawer}
-        </Drawer>
+          {/* Mobile drawer */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true, // Better open performance on mobile.
+            }}
+            sx={{
+              display: { xs: "block", sm: "none" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+          {/* Desktop drawer */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", sm: "block" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          }}
+        >
+          <Toolbar />
+
+          {error && (
+            <Alert
+              severity="error"
+              onClose={() => setError(null)}
+              sx={{ mb: 2 }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {activeTab === 0 && renderOverview()}
+              {activeTab === 1 && <AdminDashboard />}
+              {activeTab === 2 && <AppointmentManagement />}
+              {activeTab === 3 && renderProjectManagement()}
+              {activeTab === 4 && renderVehicleManagement()}
+              {activeTab === 5 && renderEmployeeWorkload()}
+            </>
+          )}
+        </Box>
       </Box>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-        }}
-      >
-        <Toolbar />
-
-        {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            {activeTab === 0 && renderOverview()}
-            {activeTab === 1 && <AdminDashboard />}
-            {activeTab === 2 && <AppointmentManagement />}
-            {activeTab === 3 && renderProjectManagement()}
-            {activeTab === 4 && renderVehicleManagement()}
-            {activeTab === 5 && renderEmployeeWorkload()}
-          </>
-        )}
-      </Box>
-    </Box>
+    </NotificationProvider>
   );
 };
 

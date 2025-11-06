@@ -373,9 +373,9 @@ const AppointmentsSection: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {typeof appointment.vehicle_details === 'object' 
-                          ? appointment.vehicle_details?.display_name || "N/A"
-                          : appointment.vehicle_details || "N/A"}
+                        {typeof appointment.vehicle_details === "string"
+                          ? appointment.vehicle_details || "N/A"
+                          : "N/A"}
                       </TableCell>
                       <TableCell>
                         <Chip

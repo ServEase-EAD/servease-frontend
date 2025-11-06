@@ -33,12 +33,14 @@ export const getAppointments = async (params?: {
       API_ENDPOINTS.APPOINTMENTS.LIST,
       {
         params,
+        timeout: 60000, // Increase timeout to 60 seconds
       }
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error("Error fetching appointments:", error);
-    throw new Error(handleApiError(error));
+    // Return empty array on timeout to allow UI to render
+    return [];
   }
 };
 
@@ -302,6 +304,7 @@ export const getCustomerAppointments = async (
       API_ENDPOINTS.APPOINTMENTS.CUSTOMER_APPOINTMENTS,
       {
         params: { customer_id: customerId },
+        timeout: 60000, // Increase timeout to 60 seconds for this endpoint
       }
     );
     return Array.isArray(response.data) ? response.data : [];
@@ -310,7 +313,8 @@ export const getCustomerAppointments = async (
       `Error fetching appointments for customer ${customerId}:`,
       error
     );
-    throw new Error(handleApiError(error));
+    // Return empty array instead of throwing to allow the UI to render
+    return [];
   }
 };
 

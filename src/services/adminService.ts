@@ -155,6 +155,8 @@ export interface Appointment {
   description: string;
   category?: string;
   assigned_employees?: string[];
+  assigned_employee_id?: string; // Single employee ID from backend
+  employee_name?: string; // Employee name from backend
   created_at: string;
 }
 
@@ -305,8 +307,8 @@ export const getAllProjects = async (params?: {
   customer_id?: string;
   assigned_employee_id?: string;
 }): Promise<Project[]> => {
-  const response = await apiClient.get("/api/v1/admin/projects/", { 
-    params: { ...params, _t: Date.now() } // Cache busting
+  const response = await apiClient.get("/api/v1/admin/projects/", {
+    params: { ...params, _t: Date.now() }, // Cache busting
   });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
@@ -333,15 +335,21 @@ export const getProjectProgress = async (): Promise<Project[]> => {
 };
 
 /**
- * Approve a project
+ * Approve a project with tasks and employee assignments
  */
 export const approveProject = async (
   projectId: string,
-  assignedEmployeeId?: string
-): Promise<{ message: string }> => {
+  tasks: Array<{
+    title: string;
+    description?: string;
+    assigned_employee_id: string;
+    priority?: string;
+    due_date?: string;
+  }>
+): Promise<{ message: string; data: { project: Project; tasks: Task[] } }> => {
   const response = await apiClient.post(
     `/api/v1/admin/projects/${projectId}/approve/`,
-    { assigned_employee_id: assignedEmployeeId }
+    { tasks }
   );
   return response.data;
 };

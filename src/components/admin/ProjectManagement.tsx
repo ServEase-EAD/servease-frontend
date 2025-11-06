@@ -147,7 +147,14 @@ const ProjectManagement: React.FC = () => {
         "Pending:",
         pendingProjs.length
       );
-      console.log("Pending projects:", pendingProjs.map(p => ({ title: p.title, approval_status: p.approval_status, status: p.status })));
+      console.log(
+        "Pending projects:",
+        pendingProjs.map((p) => ({
+          title: p.title,
+          approval_status: p.approval_status,
+          status: p.status,
+        }))
+      );
       setProjects(allProjects);
       setPendingProjects(pendingProjs);
       setEmployees(employeesData);
@@ -237,69 +244,59 @@ const ProjectManagement: React.FC = () => {
       return;
     }
 
+    // Validate that at least one task has both title and assigned employee
+    const validTasks = approvalTasks.filter(
+      (t) => t.title.trim() !== "" && t.assigned_employee_id !== ""
+    );
+
+    if (validTasks.length === 0) {
+      setError(
+        "At least one task with a title and assigned employee is required to approve a project"
+      );
+      return;
+    }
+
+    // Validate each task
+    for (let i = 0; i < approvalTasks.length; i++) {
+      const task = approvalTasks[i];
+      if (task.title.trim() !== "") {
+        // If task has a title, it must have an assigned employee
+        if (!task.assigned_employee_id) {
+          setError(`Task ${i + 1}: Please assign an employee`);
+          return;
+        }
+        if (task.title.trim().length < 3) {
+          setError(`Task ${i + 1}: Title must be at least 3 characters`);
+          return;
+        }
+      }
+    }
+
     try {
       setLoading(true);
 
-      // Check authentication
-      const token = localStorage.getItem("access_token");
-      console.log("Token exists:", !!token);
-      if (token) {
-        // Decode JWT to check role
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          console.log("User role:", payload.user_role);
-          console.log("Token payload:", payload);
-        } catch (e) {
-          console.error("Failed to decode token:", e);
-        }
-      }
-
-      // First approve the project
       const projectId = selectedProject.project_id || selectedProject.id;
       console.log("Approving project:", projectId);
       if (!projectId) {
         throw new Error("Project ID is missing");
       }
-      await approveProject(projectId);
 
-      // Then create tasks if any have titles
-      const tasksToCreate = approvalTasks.filter((t) => t.title.trim() !== "");
-      console.log("Creating tasks:", tasksToCreate.length);
+      // Prepare tasks for the API (only include tasks with titles)
+      const tasksPayload = validTasks.map((task) => ({
+        title: task.title,
+        description: task.description || "",
+        assigned_employee_id: task.assigned_employee_id,
+        priority: "medium",
+        ...(task.due_date && { due_date: task.due_date }),
+      }));
 
-      for (const task of tasksToCreate) {
-        try {
-          await createTask({
-            project: projectId,
-            title: task.title,
-            description: task.description || "",
-            priority: "medium",
-            due_date: task.due_date || undefined,
-            assigned_employee_id: task.assigned_employee_id || undefined,
-          });
-          console.log("✅ Task created:", task.title);
-        } catch (taskErr) {
-          console.error("Failed to create task:", taskErr);
-          if (axios.isAxiosError(taskErr) && taskErr.response) {
-            console.error("Error response data:", taskErr.response.data);
-            console.error("Task data sent:", {
-              project: projectId,
-              title: task.title,
-              description: task.description || "",
-              priority: "medium",
-              due_date: task.due_date || undefined,
-              assigned_employee_id: task.assigned_employee_id || undefined,
-            });
-          }
-          // Continue creating other tasks even if one fails
-        }
-      }
+      console.log("Approving with tasks:", tasksPayload);
+
+      // Approve project with tasks in a single API call
+      await approveProject(projectId, tasksPayload);
 
       setSuccess(
-        `Project approved successfully${
-          tasksToCreate.length > 0
-            ? ` with ${tasksToCreate.length} task(s) created`
-            : ""
-        }`
+        `Project approved successfully with ${validTasks.length} task(s) created`
       );
       setApproveDialog(false);
       setApprovalTasks([]);
@@ -316,6 +313,14 @@ const ProjectManagement: React.FC = () => {
 
         if (err.response?.data?.error) {
           errorMsg = err.response.data.error;
+        } else if (err.response?.data?.details) {
+          // Handle detailed errors from task creation
+          const details = err.response.data.details;
+          if (typeof details === "object") {
+            errorMsg = `Failed to approve project: ${JSON.stringify(details)}`;
+          } else {
+            errorMsg = `Failed to approve project: ${details}`;
+          }
         } else if (err.response?.data?.detail) {
           errorMsg = err.response.data.detail;
         } else if (err.response?.status === 403) {
@@ -661,7 +666,9 @@ const ProjectManagement: React.FC = () => {
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => handleDeleteTask(task.task_id || task.id!)}
+                        onClick={() =>
+                          handleDeleteTask(task.task_id || task.id!)
+                        }
                         title="Delete"
                       >
                         <Delete />
@@ -865,7 +872,14 @@ const ProjectManagement: React.FC = () => {
                     mb: 2,
                   }}
                 >
-                  <Typography variant="h6">Add Tasks (Optional)</Typography>
+                  <Box>
+                    <Typography variant="h6">
+                      Create Tasks & Assign Employees
+                    </Typography>
+                    <Typography variant="body2" color="error" sx={{ mt: 0.5 }}>
+                      * At least one task with an assigned employee is required
+                    </Typography>
+                  </Box>
                   <Button
                     startIcon={<Add />}
                     onClick={addApprovalTask}
@@ -931,8 +945,8 @@ const ProjectManagement: React.FC = () => {
                           gap: 2,
                         }}
                       >
-                        <FormControl fullWidth>
-                          <InputLabel>Assign To Employee</InputLabel>
+                        <FormControl fullWidth required>
+                          <InputLabel>Assign To Employee *</InputLabel>
                           <Select
                             value={task.assigned_employee_id}
                             onChange={(e) =>
@@ -942,9 +956,11 @@ const ProjectManagement: React.FC = () => {
                                 e.target.value
                               )
                             }
-                            label="Assign To Employee"
+                            label="Assign To Employee *"
                           >
-                            <MenuItem value="">Unassigned</MenuItem>
+                            <MenuItem value="">
+                              <em>Select an employee</em>
+                            </MenuItem>
                             {employees.map((emp) => (
                               <MenuItem key={emp.id} value={emp.id}>
                                 {emp.first_name} {emp.last_name} ({emp.email})
@@ -955,7 +971,7 @@ const ProjectManagement: React.FC = () => {
                         <TextField
                           fullWidth
                           type="date"
-                          label="Due Date"
+                          label="Due Date (Optional)"
                           value={task.due_date}
                           onChange={(e) =>
                             updateApprovalTask(
@@ -1512,7 +1528,9 @@ const ProjectManagement: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="error"
-                                onClick={() => handleDeleteTask(task.task_id || task.id!)}
+                                onClick={() =>
+                                  handleDeleteTask(task.task_id || task.id!)
+                                }
                                 title="Delete Task"
                               >
                                 <Delete />
