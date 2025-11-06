@@ -418,3 +418,43 @@ export type TimeFilterOption =
   | "this_week"
   | "this_month"
   | "last_month";
+
+// Chatbot related types
+export type ChatRole = "user" | "assistant" | "system";
+export type ChatModel = "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-2.0-flash-exp";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  timestamp: string;
+  token_count?: number;
+}
+
+export interface ChatSession {
+  id: string;
+  session_id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+  messages: ChatMessage[];
+}
+
+export interface ChatRequest {
+  message: string;
+  session_id?: string;
+  model?: ChatModel;
+}
+
+export interface ChatResponse {
+  session_id: string;
+  message: string;
+  role: ChatRole;
+  timestamp: string;
+}
+
+export interface ChatSessionsResponse {
+  count: number;
+  results: ChatSession[];
+}

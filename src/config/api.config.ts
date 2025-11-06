@@ -194,7 +194,11 @@ export const API_ENDPOINTS = {
 
   // Chatbot endpoints
   CHATBOT: {
-    SEND_MESSAGE: "/api/v1/chatbot/message/",
+    CHAT: "/api/v1/chatbot/chat/",
+    SESSIONS: "/api/v1/chatbot/sessions/",
+    SESSION_DETAIL: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/`,
+    DELETE_SESSION: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/delete/`,
+    CLEAR_SESSION: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/clear/`,
   },
 
   // Admin endpoints
