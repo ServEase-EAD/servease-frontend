@@ -318,7 +318,7 @@ export type TaskType = "project" | "appointment";
 
 export interface TimeLog {
   log_id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   shift?: string | null;
   task_type: TaskType;
   project_id?: string | null;
@@ -362,7 +362,7 @@ export interface UpdateTimeLogRequest {
 
 export interface DailyTimeTotal {
   id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   log_date: string;
   total_hours: number;
   total_hours_formatted: string;
@@ -377,7 +377,7 @@ export interface DailyTimeTotal {
 }
 
 export interface TimeLogStats {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   total_hours: string;
   total_entries: number;
   avg_hours_per_day: string;
@@ -391,7 +391,7 @@ export interface TimeLogStats {
 
 export interface EmployeeLogsResponse {
   message?: string;
-  employee_id?: number;
+  employee_id?: string; // UUID from backend
   filter: string;
   data: {
     [date: string]: TimeLog[];
@@ -399,7 +399,7 @@ export interface EmployeeLogsResponse {
 }
 
 export interface DailyTotalsResponse {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   date_range: {
     start_date?: string;
     end_date?: string;
