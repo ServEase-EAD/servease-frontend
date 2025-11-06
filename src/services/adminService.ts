@@ -488,11 +488,17 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
 export interface Vehicle {
   id: string;
-  registration_number: string;
+  vehicle_id?: string;
+  plate_number: string;
   make: string;
   model: string;
   year: number;
+  color?: string;
+  vin?: string;
   customer_id: string;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
   active_projects?: Project[];
   active_appointments?: Appointment[];
 }

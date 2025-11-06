@@ -67,7 +67,7 @@ export function NotificationPanel({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="absolute right-0 mt-2 w-full md:w-96 max-h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col overflow-hidden"
+        className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 md:w-[480px] max-h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col overflow-hidden"
         style={{
           maxHeight: "calc(100vh - 100px)",
         }}
