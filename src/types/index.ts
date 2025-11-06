@@ -2,6 +2,22 @@
  * Type definitions for the ServEase application
  */
 
+// Vehicle details interface (used by enriched appointment data)
+export interface VehicleDetails {
+  vehicle_id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  vin: string;
+  plate_number: string;
+  display_name: string;
+  age: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // User related types
 export interface User {
   id: string;
@@ -150,16 +166,126 @@ export interface Vehicle {
 }
 
 // Appointment related types
+export type AppointmentType =
+  | "maintenance"
+  | "repair"
+  | "inspection"
+  | "diagnostic"
+  | "emergency";
+export type AppointmentStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "no_show";
+
 export interface Appointment {
   id: string;
-  customerId: string;
-  vehicleId: string;
-  employeeId?: string;
-  scheduledDate: string;
-  status: "pending" | "confirmed" | "in-progress" | "completed" | "cancelled";
-  serviceType: string;
-  notes?: string;
-  // Add other appointment fields
+  customer_id: string;
+  vehicle_id: string;
+  assigned_employee_id?: string | null;
+  appointment_type: AppointmentType;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes: number;
+  status: AppointmentStatus;
+  service_description?: string;
+  customer_notes?: string;
+  internal_notes?: string;
+  estimated_cost?: number | null;
+  created_by_user_id: string;
+  created_at: string;
+  updated_at: string;
+  cancelled_at?: string | null;
+  completed_at?: string | null;
+  // Computed fields from backend
+  customer_name?: string;
+  vehicle_details?: string | VehicleDetails; // Can be string (legacy) or object (enriched)
+  employee_name?: string;
+  time_until_appointment?: string;
+}
+
+export interface CreateAppointmentData {
+  customer_id: string;
+  vehicle_id: string;
+  appointment_type: AppointmentType;
+  scheduled_date: string;
+  scheduled_time: string;
+  duration_minutes?: number;
+  service_description?: string;
+  customer_notes?: string;
+  estimated_cost?: number;
+  created_by_user_id?: string; // Added automatically from JWT token
+}
+
+export interface UpdateAppointmentData {
+  appointment_type?: AppointmentType;
+  scheduled_date?: string;
+  scheduled_time?: string;
+  duration_minutes?: number;
+  service_description?: string;
+  customer_notes?: string;
+  internal_notes?: string;
+  estimated_cost?: number;
+}
+
+export interface RescheduleAppointmentData {
+  new_date: string;
+  new_time: string;
+  reason?: string;
+}
+
+export interface AssignEmployeeData {
+  employee_id: string;
+}
+
+export interface StatusUpdateData {
+  reason?: string;
+}
+
+export interface TimeSlot {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  max_concurrent_appointments: number;
+  available_capacity?: number;
+}
+
+export interface AppointmentHistory {
+  id: string;
+  appointment_id: string;
+  changed_by_user_id: string;
+  previous_status: string;
+  new_status: string;
+  change_reason?: string;
+  changed_at: string;
+}
+
+export interface AppointmentStats {
+  total_appointments: number;
+  pending: number;
+  confirmed: number;
+  in_progress: number;
+  completed: number;
+  cancelled: number;
+  today: number;
+  completed_today: number;
+  upcoming: number;
+  by_type: Record<AppointmentType, number>;
+}
+
+export interface AvailableSlot {
+  date: string;
+  time: string;
+  available: boolean;
+}
+
+export interface AvailableSlotsResponse {
+  count: number;
+  slots: AvailableSlot[];
 }
 
 // Notification related types
@@ -192,7 +318,7 @@ export type TaskType = "project" | "appointment";
 
 export interface TimeLog {
   log_id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   shift?: string | null;
   task_type: TaskType;
   project_id?: string | null;
@@ -236,7 +362,7 @@ export interface UpdateTimeLogRequest {
 
 export interface DailyTimeTotal {
   id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   log_date: string;
   total_hours: number;
   total_hours_formatted: string;
@@ -251,7 +377,7 @@ export interface DailyTimeTotal {
 }
 
 export interface TimeLogStats {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   total_hours: string;
   total_entries: number;
   avg_hours_per_day: string;
@@ -265,7 +391,7 @@ export interface TimeLogStats {
 
 export interface EmployeeLogsResponse {
   message?: string;
-  employee_id?: number;
+  employee_id?: string; // UUID from backend
   filter: string;
   data: {
     [date: string]: TimeLog[];
@@ -273,7 +399,7 @@ export interface EmployeeLogsResponse {
 }
 
 export interface DailyTotalsResponse {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   date_range: {
     start_date?: string;
     end_date?: string;
@@ -286,4 +412,9 @@ export interface DailyTotalsResponse {
   daily_totals: DailyTimeTotal[];
 }
 
-export type TimeFilterOption = "all_time" | "today" | "this_week" | "this_month" | "last_month";
+export type TimeFilterOption =
+  | "all_time"
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "last_month";

@@ -9,7 +9,7 @@ import SignUpPage from "./pages/SignUpPage";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+import EnhancedAdminDashboard from "./components/admin/EnhancedAdminDashboard";
 import "./App.css";
 
 // Temporary Home component until you create a proper one
@@ -26,7 +26,7 @@ const HomePage: React.FC = () => {
     return <EmployeeDashboard />;
   }
   if (token && userRole === "admin") {
-    return <AdminDashboard />;
+    return <EnhancedAdminDashboard />;
   }
   // Redirect to login page for unauthenticated users
   return <Navigate to="/login" replace />;
@@ -59,7 +59,7 @@ function App() {
           path="/admin-dashboard"
           element={
             <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
+              <EnhancedAdminDashboard />
             </ProtectedRoute>
           }
         />

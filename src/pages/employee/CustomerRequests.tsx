@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import type { SelectChangeEvent } from '@mui/material';
-import apiClient, { handleApiError } from '../../services/apiService';
-import { API_ENDPOINTS } from '../../config/api.config';
+import { 
+  getEnhancedAppointments, 
+  updateAppointmentStatus, 
+  handleApiError
+} from '../../services/enhancedDataService';
+import type { VehicleDetails } from '../../services/enhancedDataService';
 import {
   Box,
   Card,
@@ -35,14 +39,20 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 // ----------------- Types -----------------
 interface Task {
   id: string;
-  customer_id: string;
-  vehicle_id: string;
   appointment_type: string;
   scheduled_date: string;
   scheduled_time: string;
   status: string;
   customer_name: string;
-  vehicle_details: string;
+  vehicle_details: VehicleDetails;
+  customer_details?: any;
+  service_description?: string;
+  customer_notes?: string;
+  internal_notes?: string;
+  estimated_cost?: number;
+  duration_minutes?: number;
+  assigned_employee_id?: string;
+  employee_name?: string;
 }
 
 // ----------------- Component -----------------
@@ -67,14 +77,29 @@ const CustomerRequests: React.FC = () => {
       setError('');
 
       try {
-        const response = await apiClient.get(API_ENDPOINTS.APPOINTMENTS.LIST);
-        console.log('✅ Appointments response:', response.data);
+        const enhancedTasks = await getEnhancedAppointments();
+        console.log('✅ Enhanced appointments response:', enhancedTasks);
 
-        const data = Array.isArray(response.data)
-          ? response.data
-          : response.data.results || response.data.appointments || [];
+        // Convert EnhancedTask to Task format
+        const tasks: Task[] = enhancedTasks.map(task => ({
+          id: task.id,
+          appointment_type: task.appointment_type,
+          scheduled_date: task.scheduled_date,
+          scheduled_time: task.scheduled_time,
+          status: task.status,
+          customer_name: task.customer_name || 'Unknown Customer',
+          vehicle_details: task.vehicle_details,
+          customer_details: task.customer_details,
+          service_description: task.service_description,
+          customer_notes: task.customer_notes,
+          internal_notes: task.internal_notes,
+          estimated_cost: task.estimated_cost,
+          duration_minutes: task.duration_minutes,
+          assigned_employee_id: task.assigned_employee_id,
+          employee_name: task.employee_name
+        }));
 
-        setTasks(data);
+        setTasks(tasks);
       } catch (error) {
         console.error('⚠️ Error fetching assigned tasks:', error);
         const errorMessage = handleApiError(error);
@@ -92,17 +117,12 @@ const CustomerRequests: React.FC = () => {
     fetchAssignedTasks();
   }, []);
 
-  // ----------------- Update Status via Gateway -----------------
+  // ----------------- Update Status via Enhanced Service -----------------
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       console.log(`🔄 Updating task ${taskId} status to ${newStatus}`);
       
-      const response = await apiClient.patch(
-        API_ENDPOINTS.APPOINTMENTS.DETAIL(taskId),
-        { status: newStatus.toLowerCase() }
-      );
-
-      console.log('✅ Status update response:', response.data);
+      await updateAppointmentStatus(taskId, newStatus);
 
       // Update frontend immediately
       setTasks(prevTasks =>
@@ -300,7 +320,7 @@ const CustomerRequests: React.FC = () => {
                   <TableRow key={task.id}>
                     <TableCell>{task.appointment_type}</TableCell>
                     <TableCell>{task.customer_name}</TableCell>
-                    <TableCell>{task.vehicle_details}</TableCell>
+                    <TableCell>{task.vehicle_details.display_name || `${task.vehicle_details.year} ${task.vehicle_details.make} ${task.vehicle_details.model}`}</TableCell>
                     <TableCell>
                       <Typography variant="body2">{task.scheduled_date}</Typography>
                       <Typography variant="caption" color="text.secondary">
