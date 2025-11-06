@@ -25,7 +25,7 @@ export const NotificationContext = createContext<
 
 interface NotificationProviderProps {
   children: ReactNode;
-  userId: string | number | null;  // Support both UUID string and number
+  userId: string | number | null; // Support both UUID string and number
 }
 
 export function NotificationProvider({
@@ -37,20 +37,38 @@ export function NotificationProvider({
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log("🔧 [NotificationProvider] Initialized with userId:", userId);
+
   // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("⚠️ [NotificationContext] Cannot fetch: userId is null");
+      return;
+    }
 
+    console.log(
+      "🔄 [NotificationContext] Fetching notifications for user:",
+      userId
+    );
     setIsLoading(true);
     try {
       const response = await notificationService.getNotifications(userId);
+      console.log(
+        "✅ [NotificationContext] Fetched",
+        response.results?.length || 0,
+        "notifications"
+      );
       setNotifications(response.results);
 
       // Calculate unread count
       const unread = response.results.filter((n) => !n.read_at).length;
+      console.log("📊 [NotificationContext] Unread count:", unread);
       setUnreadCount(unread);
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error(
+        "❌ [NotificationContext] Error fetching notifications:",
+        error
+      );
     } finally {
       setIsLoading(false);
     }
