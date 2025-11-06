@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import type { SelectChangeEvent } from "@mui/material";
 import apiClient, { handleApiError } from "../../services/apiService";
 import { API_ENDPOINTS } from "../../config/api.config";
-import { getEmployeeTasks, type Task as ProjectTask } from "../../services/projectService";
+import {
+  getEmployeeTasks,
+  type Task as ProjectTask,
+} from "../../services/projectService";
+import { getUserFromToken } from "../../services/authService";
 import {
   Box,
   Card,
@@ -74,7 +78,9 @@ interface UnifiedTask {
 
 // ----------------- Component -----------------
 const MyTasks: React.FC = () => {
-  const [appointmentTasks, setAppointmentTasks] = useState<AppointmentTask[]>([]);
+  const [appointmentTasks, setAppointmentTasks] = useState<AppointmentTask[]>(
+    []
+  );
   const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -102,29 +108,44 @@ const MyTasks: React.FC = () => {
     setError("");
 
     try {
-      const [appointmentResponse, projectTasksData] = await Promise.all([
-        apiClient.get(API_ENDPOINTS.APPOINTMENTS.LIST),
-        getEmployeeTasks().catch(() => []),
-      ]);
+      // Get logged-in employee ID
+      const user = getUserFromToken();
+      const employeeId = user?.id;
+
+      if (!employeeId) {
+        setError("Unable to identify logged-in employee");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch appointments assigned to this employee
+      const appointmentResponse = await apiClient.get(
+        `${API_ENDPOINTS.APPOINTMENTS.LIST}?employee_id=${employeeId}`
+      );
+
+      // Fetch project tasks (already filtered by backend for logged-in employee)
+      const projectTasksData = await getEmployeeTasks().catch(() => []);
 
       const appointmentResults = appointmentResponse.data.results || [];
-      const appointments: AppointmentTask[] = appointmentResults.map((task: Record<string, unknown>) => ({
-        id: task.id as string,
-        appointment_type: task.appointment_type as string,
-        scheduled_date: task.scheduled_date as string,
-        scheduled_time: task.scheduled_time as string,
-        status: task.status as string,
-        customer_name: (task.customer_name as string) || "Unknown Customer",
-        vehicle_details: task.vehicle_details as string,
-        customer_details: task.customer_details as Record<string, unknown>,
-        service_description: task.service_description as string,
-        customer_notes: task.customer_notes as string,
-        internal_notes: task.internal_notes as string,
-        estimated_cost: task.estimated_cost as number,
-        duration_minutes: task.duration_minutes as number,
-        assigned_employee_id: task.assigned_employee_id as string,
-        employee_name: task.employee_name as string,
-      }));
+      const appointments: AppointmentTask[] = appointmentResults.map(
+        (task: Record<string, unknown>) => ({
+          id: task.id as string,
+          appointment_type: task.appointment_type as string,
+          scheduled_date: task.scheduled_date as string,
+          scheduled_time: task.scheduled_time as string,
+          status: task.status as string,
+          customer_name: (task.customer_name as string) || "Unknown Customer",
+          vehicle_details: task.vehicle_details as string,
+          customer_details: task.customer_details as Record<string, unknown>,
+          service_description: task.service_description as string,
+          customer_notes: task.customer_notes as string,
+          internal_notes: task.internal_notes as string,
+          estimated_cost: task.estimated_cost as number,
+          duration_minutes: task.duration_minutes as number,
+          assigned_employee_id: task.assigned_employee_id as string,
+          employee_name: task.employee_name as string,
+        })
+      );
 
       setAppointmentTasks(appointments);
       setProjectTasks(projectTasksData);
@@ -148,7 +169,10 @@ const MyTasks: React.FC = () => {
       id: task.id,
       type: "appointment" as const,
       title: task.appointment_type,
-      vehicle: typeof task.vehicle_details === "string" ? task.vehicle_details : "Unknown Vehicle",
+      vehicle:
+        typeof task.vehicle_details === "string"
+          ? task.vehicle_details
+          : "Unknown Vehicle",
       dueDate: task.scheduled_date,
       dueTime: task.scheduled_time,
       status: task.status,
@@ -175,7 +199,9 @@ const MyTasks: React.FC = () => {
 
       setAppointmentTasks((prevTasks) =>
         prevTasks.map((task) =>
-          task.id === taskId ? { ...task, status: newStatus.toLowerCase() } : task
+          task.id === taskId
+            ? { ...task, status: newStatus.toLowerCase() }
+            : task
         )
       );
 
@@ -232,7 +258,9 @@ const MyTasks: React.FC = () => {
     return map[status.toLowerCase()] || status;
   };
 
-  const getStatusColor = (status: string): "default" | "error" | "warning" | "info" | "success" => {
+  const getStatusColor = (
+    status: string
+  ): "default" | "error" | "warning" | "info" | "success" => {
     switch (status.toLowerCase()) {
       case "completed":
         return "success";
@@ -273,18 +301,21 @@ const MyTasks: React.FC = () => {
     pending: unifiedTasks.filter((t) =>
       ["pending", "not_started"].includes(t.status.toLowerCase())
     ).length,
-    in_progress: unifiedTasks.filter((t) => t.status.toLowerCase() === "in_progress")
-      .length,
-    completed: unifiedTasks.filter((t) => t.status.toLowerCase() === "completed")
-      .length,
+    in_progress: unifiedTasks.filter(
+      (t) => t.status.toLowerCase() === "in_progress"
+    ).length,
+    completed: unifiedTasks.filter(
+      (t) => t.status.toLowerCase() === "completed"
+    ).length,
   };
 
   // ----------------- Filter Tasks -----------------
   const filteredTasks = unifiedTasks
-    .filter((task) =>
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.status.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter(
+      (task) =>
+        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.vehicle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.status.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter((task) => (statusFilter ? task.status === statusFilter : true))
     .sort((a, b) => {
@@ -421,11 +452,21 @@ const MyTasks: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell><strong>Task Title</strong></TableCell>
-                <TableCell><strong>Vehicle</strong></TableCell>
-                <TableCell><strong>Due Date & Time</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
-                <TableCell><strong>Actions</strong></TableCell>
+                <TableCell>
+                  <strong>Task Title</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Vehicle</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Due Date & Time</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Status</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Actions</strong>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -444,9 +485,13 @@ const MyTasks: React.FC = () => {
                   return (
                     <TableRow key={`${task.type}-${task.id}`}>
                       <TableCell>
-                        <Typography variant="subtitle2">{task.title}</Typography>
+                        <Typography variant="subtitle2">
+                          {task.title}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {task.type === "appointment" ? "Customer Appointment" : "Project Task"}
+                          {task.type === "appointment"
+                            ? "Customer Appointment"
+                            : "Project Task"}
                         </Typography>
                       </TableCell>
                       <TableCell>{task.vehicle}</TableCell>
@@ -525,7 +570,9 @@ const MyTasks: React.FC = () => {
             <DialogTitle>
               <Typography variant="h6">Task Details</Typography>
               <Typography variant="caption" color="text.secondary">
-                {selectedTask.type === "appointment" ? "Customer Appointment" : "Project Task"}
+                {selectedTask.type === "appointment"
+                  ? "Customer Appointment"
+                  : "Project Task"}
               </Typography>
             </DialogTitle>
             <DialogContent>
@@ -538,7 +585,10 @@ const MyTasks: React.FC = () => {
                         Service Type
                       </Typography>
                       <Typography>
-                        {(selectedTask.originalData as AppointmentTask).appointment_type}
+                        {
+                          (selectedTask.originalData as AppointmentTask)
+                            .appointment_type
+                        }
                       </Typography>
                     </Box>
                     <Divider />
@@ -547,7 +597,10 @@ const MyTasks: React.FC = () => {
                         Customer
                       </Typography>
                       <Typography>
-                        {(selectedTask.originalData as AppointmentTask).customer_name}
+                        {
+                          (selectedTask.originalData as AppointmentTask)
+                            .customer_name
+                        }
                       </Typography>
                     </Box>
                     <Divider />
@@ -568,27 +621,41 @@ const MyTasks: React.FC = () => {
                       </Typography>
                     </Box>
                     <Divider />
-                    {(selectedTask.originalData as AppointmentTask).service_description && (
+                    {(selectedTask.originalData as AppointmentTask)
+                      .service_description && (
                       <>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
                             Service Description
                           </Typography>
                           <Typography>
-                            {(selectedTask.originalData as AppointmentTask).service_description}
+                            {
+                              (selectedTask.originalData as AppointmentTask)
+                                .service_description
+                            }
                           </Typography>
                         </Box>
                         <Divider />
                       </>
                     )}
-                    {(selectedTask.originalData as AppointmentTask).customer_notes && (
+                    {(selectedTask.originalData as AppointmentTask)
+                      .customer_notes && (
                       <>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
                             Customer Notes
                           </Typography>
                           <Typography>
-                            {(selectedTask.originalData as AppointmentTask).customer_notes}
+                            {
+                              (selectedTask.originalData as AppointmentTask)
+                                .customer_notes
+                            }
                           </Typography>
                         </Box>
                         <Divider />
@@ -616,12 +683,17 @@ const MyTasks: React.FC = () => {
                       </Box>
                     </Box>
                     <Divider />
-                    <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}
+                    >
                       <DescriptionIcon color="action" />
                       <Box>
                         <Typography variant="subtitle2">Description</Typography>
                         <Typography>
-                          {(selectedTask.originalData as ProjectTask).description}
+                          {
+                            (selectedTask.originalData as ProjectTask)
+                              .description
+                          }
                         </Typography>
                       </Box>
                     </Box>
@@ -633,7 +705,9 @@ const MyTasks: React.FC = () => {
                         <Typography>
                           {selectedTask.dueDate === "No due date"
                             ? "No due date set"
-                            : new Date(selectedTask.dueDate).toLocaleDateString()}
+                            : new Date(
+                                selectedTask.dueDate
+                              ).toLocaleDateString()}
                         </Typography>
                       </Box>
                     </Box>
@@ -651,7 +725,9 @@ const MyTasks: React.FC = () => {
                         {(selectedTask.originalData as ProjectTask).priority
                           .charAt(0)
                           .toUpperCase() +
-                          (selectedTask.originalData as ProjectTask).priority.slice(1)}
+                          (
+                            selectedTask.originalData as ProjectTask
+                          ).priority.slice(1)}
                       </Typography>
                     </Box>
                     <Divider />
@@ -670,7 +746,9 @@ const MyTasks: React.FC = () => {
                         <Typography variant="subtitle2">Created</Typography>
                         <Typography variant="caption" color="text.secondary">
                           {new Date(
-                            (selectedTask.originalData as ProjectTask).created_at
+                            (
+                              selectedTask.originalData as ProjectTask
+                            ).created_at
                           ).toLocaleString()}
                         </Typography>
                       </Box>
@@ -680,19 +758,20 @@ const MyTasks: React.FC = () => {
               </Stack>
             </DialogContent>
             <DialogActions>
-              {selectedTask.status !== "completed" && getNextButtonLabel(selectedTask.status) && (
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={() => {
-                    handleStatusChange(selectedTask);
-                    setDetailsDialogOpen(false);
-                  }}
-                >
-                  {getNextButtonLabel(selectedTask.status)}
-                </Button>
-              )}
+              {selectedTask.status !== "completed" &&
+                getNextButtonLabel(selectedTask.status) && (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => {
+                      handleStatusChange(selectedTask);
+                      setDetailsDialogOpen(false);
+                    }}
+                  >
+                    {getNextButtonLabel(selectedTask.status)}
+                  </Button>
+                )}
               <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
             </DialogActions>
           </>
