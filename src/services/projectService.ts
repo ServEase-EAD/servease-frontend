@@ -47,6 +47,7 @@ export interface Task {
   task_id: string;
   project: string;
   project_name?: string; // Add project name for display
+  vehicle?: string; // Add vehicle for display
   title: string;
   description: string;
   status: "not_started" | "in_progress" | "completed" | "blocked";
@@ -147,17 +148,65 @@ export const getEmployeeTasks = async (): Promise<Task[]> => {
     const projectPromises = projectIds.map(projectId => getProjectById(projectId));
     const projects = await Promise.all(projectPromises);
 
-    // Create a map of project ID to project name
-    const projectMap = new Map<string, string>();
+    // Get unique vehicle IDs from projects
+    const vehicleIds = [...new Set(projects.map(project => project.vehicle))];
+
+    // Fetch vehicle details for all unique vehicle IDs
+    const vehiclePromises = vehicleIds.map(async vehicleId => {
+      try {
+        const vehicleResponse = await apiClient.get(API_ENDPOINTS.VEHICLES.DETAIL(vehicleId));
+        const vehicle = vehicleResponse.data;
+        // Format vehicle details similar to appointment service
+        const year = vehicle.year || '';
+        const make = vehicle.make || 'Unknown';
+        const model = vehicle.model || 'Vehicle';
+        const plate = vehicle.plate_number || '';
+        
+        const displayParts = [];
+        if (year) displayParts.push(String(year));
+        displayParts.push(make, model);
+        const displayName = displayParts.filter(Boolean).join(' ');
+        
+        return {
+          id: vehicleId,
+          details: plate ? `${displayName} (${plate})` : displayName
+        };
+      } catch (error) {
+        console.error(`Error fetching vehicle ${vehicleId}:`, error);
+        return {
+          id: vehicleId,
+          details: 'Unknown Vehicle'
+        };
+      }
+    });
+    
+    const vehicles = await Promise.all(vehiclePromises);
+
+    // Create maps for project data and vehicle details
+    const projectMap = new Map<string, { name: string; vehicleId: string }>();
     projects.forEach(project => {
-      projectMap.set(project.project_id, project.title);
+      projectMap.set(project.project_id, {
+        name: project.title,
+        vehicleId: project.vehicle
+      });
     });
 
-    // Enrich tasks with project names
-    const enrichedTasks = tasks.map(task => ({
-      ...task,
-      project_name: projectMap.get(task.project) || 'Unknown Project'
-    }));
+    const vehicleMap = new Map<string, string>();
+    vehicles.forEach(vehicle => {
+      vehicleMap.set(vehicle.id, vehicle.details);
+    });
+
+    // Enrich tasks with project names and vehicle info
+    const enrichedTasks = tasks.map(task => {
+      const projectData = projectMap.get(task.project);
+      const vehicleDetails = projectData ? vehicleMap.get(projectData.vehicleId) : undefined;
+      
+      return {
+        ...task,
+        project_name: projectData?.name || 'Unknown Project',
+        vehicle: vehicleDetails || 'Unknown Vehicle'
+      };
+    });
 
     return enrichedTasks;
   } catch (error) {

@@ -13,15 +13,13 @@ import {
   ExitToApp,
   Assignment,
   People,
-  Build,
   AccessTime,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
-import CustomerRequests from "./employee/CustomerRequests";
-import ServiceRequests from "./employee/ServiceRequests";
+import MyTasks from "./employee/MyTasks";
 import TimeLogs from "./employee/TimeLogs";
 import Profile from "./employee/Profile";
 
@@ -32,8 +30,7 @@ const EmployeeDashboard: React.FC = () => {
   const userId = user?.id || null;
 
   const navigationItems = [
-    { label: "Customer Requests", value: "tasks", icon: Assignment },
-    { label: "Service Requests", value: "services", icon: Build },
+    { label: "My Tasks", value: "tasks", icon: Assignment },
     { label: "Time Logs", value: "timelogs", icon: AccessTime },
     { label: "My Profile", value: "profile", icon: People },
   ];
@@ -41,15 +38,13 @@ const EmployeeDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeSection) {
       case "tasks":
-        return <CustomerRequests />;
-      case "services":
-        return <ServiceRequests />;
+        return <MyTasks />;
       case "timelogs":
         return <TimeLogs />;
       case "profile":
         return <Profile />;
       default:
-        return <CustomerRequests />;
+        return <MyTasks />;
     }
   };
 
