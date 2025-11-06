@@ -155,6 +155,8 @@ export interface Appointment {
   description: string;
   category?: string;
   assigned_employees?: string[];
+  assigned_employee_id?: string; // Single employee ID from backend
+  employee_name?: string; // Employee name from backend
   created_at: string;
 }
 

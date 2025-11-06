@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Card,
-  CardContent,
   Drawer,
   List,
   ListItem,
@@ -25,6 +23,9 @@ import {
   ExitToApp as LogoutIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
+import { NotificationProvider } from "../../contexts/NotificationContext";
+import { NotificationBellMUI } from "../../components/notifications";
+import { getUserFromToken } from "../../services/authService";
 
 // Import components
 import DashboardContent from "./DashboardContent";
@@ -40,6 +41,9 @@ const EmployeeDashboard: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
+
+  const user = getUserFromToken();
+  const userId = user?.id || null;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -105,7 +109,8 @@ const EmployeeDashboard: React.FC = () => {
               <ListItemIcon
                 sx={{
                   minWidth: 40,
-                  color: activeSection === item.value ? "primary.main" : "inherit",
+                  color:
+                    activeSection === item.value ? "primary.main" : "inherit",
                 }}
               >
                 {item.icon}
@@ -119,122 +124,127 @@ const EmployeeDashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Mobile Drawer */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": {
-            boxSizing: "border-box",
-            width: DRAWER_WIDTH,
-            backgroundColor: theme.palette.background.default,
-          },
-        }}
-      >
-        {drawer}
-      </Drawer>
-
-      {/* Desktop Drawer */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: "none", md: "block" },
-          "& .MuiDrawer-paper": {
-            boxSizing: "border-box",
-            width: DRAWER_WIDTH,
-            backgroundColor: theme.palette.background.default,
-            borderRight: `1px solid ${theme.palette.divider}`,
-          },
-        }}
-        open
-      >
-        {drawer}
-      </Drawer>
-
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Header */}
-        <Box
+    <NotificationProvider userId={userId}>
+      <Box sx={{ display: "flex", minHeight: "100vh" }}>
+        {/* Mobile Drawer */}
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
           sx={{
-            p: 2,
-            background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-            color: "white",
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+              backgroundColor: theme.palette.background.default,
+            },
           }}
         >
+          {drawer}
+        </Drawer>
+
+        {/* Desktop Drawer */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH,
+              backgroundColor: theme.palette.background.default,
+              borderRight: `1px solid ${theme.palette.divider}`,
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+
+        {/* Main Content */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Header */}
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              p: 2,
+              background: "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
+              color: "white",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              {isMobile && (
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={handleDrawerToggle}
-                  sx={{ display: { md: "none" } }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
-              <Box>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
-                  }}
-                >
-                  Employee Dashboard
-                </Typography>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    opacity: 0.9,
-                    fontSize: { xs: "0.875rem", sm: "1rem" },
-                  }}
-                >
-                  Welcome back! You are logged in as an Employee
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              component={Link}
-              to="/login"
-              variant="outlined"
-              startIcon={<LogoutIcon />}
+            <Box
               sx={{
-                color: "white",
-                borderColor: "white",
-                "&:hover": {
-                  borderColor: "white",
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                },
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              Logout
-            </Button>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {isMobile && (
+                  <IconButton
+                    color="inherit"
+                    aria-label="open drawer"
+                    edge="start"
+                    onClick={handleDrawerToggle}
+                    sx={{ display: { md: "none" } }}
+                  >
+                    <MenuIcon />
+                  </IconButton>
+                )}
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
+                    }}
+                  >
+                    Employee Dashboard
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      opacity: 0.9,
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                    }}
+                  >
+                    Welcome back! You are logged in as an Employee
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <NotificationBellMUI />
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="outlined"
+                  startIcon={<LogoutIcon />}
+                  sx={{
+                    color: "white",
+                    borderColor: "white",
+                    "&:hover": {
+                      borderColor: "white",
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    },
+                  }}
+                >
+                  Logout
+                </Button>
+              </Box>
+            </Box>
           </Box>
-        </Box>
 
-        {/* Page Content */}
-        <Box sx={{ p: 3, flexGrow: 1 }}>{renderContent()}</Box>
+          {/* Page Content */}
+          <Box sx={{ p: 3, flexGrow: 1 }}>{renderContent()}</Box>
+        </Box>
       </Box>
-    </Box>
+    </NotificationProvider>
   );
 };
 

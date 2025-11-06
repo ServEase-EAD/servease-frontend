@@ -91,6 +91,23 @@ const AppointmentManagement: React.FC = () => {
         getAllUsers("employee"),
       ]);
 
+      console.log("Loaded appointments data:", allData);
+      console.log("Sample appointment:", allData[0]);
+
+      // Log employee name details for each appointment
+      allData.forEach((apt: Appointment, index: number) => {
+        if (index < 20) {
+          // Only log first 5 to avoid clutter
+          console.log(`Appointment ${index + 1}:`, {
+            id: apt.id,
+            status: apt.status,
+            assigned_employee_id: apt.assigned_employee_id,
+            employee_name: apt.employee_name,
+            assigned_employees: apt.assigned_employees,
+          });
+        }
+      });
+
       const pending = allData.filter(
         (a: Appointment) => a.status === "pending"
       );
@@ -134,18 +151,36 @@ const AppointmentManagement: React.FC = () => {
   const handleApprove = async () => {
     if (!selectedAppointment) return;
 
+    // Validate that at least one employee is selected
+    if (
+      !approveForm.assigned_employees ||
+      approveForm.assigned_employees.length === 0
+    ) {
+      setError("Please select at least one employee to assign");
+      return;
+    }
+
+    console.log("Approving appointment with data:", {
+      id: selectedAppointment.id,
+      scheduled_date: approveForm.scheduled_date,
+      scheduled_time: approveForm.scheduled_time,
+      assigned_employees: approveForm.assigned_employees,
+    });
+
     try {
       setLoading(true);
-      await approveAppointment(selectedAppointment.id, {
+      const result = await approveAppointment(selectedAppointment.id, {
         scheduled_date: approveForm.scheduled_date,
         scheduled_time: approveForm.scheduled_time,
         assigned_employees: approveForm.assigned_employees,
       });
 
+      console.log("Approval result:", result);
       setSuccess("Appointment approved successfully");
       setApproveDialog(false);
       loadData();
     } catch (err) {
+      console.error("Approval error:", err);
       setError(
         err instanceof Error ? err.message : "Failed to approve appointment"
       );
@@ -301,7 +336,7 @@ const AppointmentManagement: React.FC = () => {
                     {appointment.assigned_employees &&
                     appointment.assigned_employees.length > 0
                       ? appointment.assigned_employees.join(", ")
-                      : "Not assigned"}
+                      : appointment.employee_name || "Not assigned"}
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: "flex", gap: 1 }}>
@@ -498,8 +533,8 @@ const AppointmentManagement: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 2 }}
             />
-            <FormControl fullWidth>
-              <InputLabel>Assign Employees (Optional)</InputLabel>
+            <FormControl fullWidth required>
+              <InputLabel>Assign Employee *</InputLabel>
               <Select
                 multiple
                 value={approveForm.assigned_employees}
@@ -509,7 +544,7 @@ const AppointmentManagement: React.FC = () => {
                     assigned_employees: e.target.value as string[],
                   })
                 }
-                label="Assign Employees (Optional)"
+                label="Assign Employee *"
               >
                 {employees.map((emp) => (
                   <MenuItem key={emp.id} value={emp.id}>
