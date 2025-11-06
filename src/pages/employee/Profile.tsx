@@ -28,19 +28,8 @@ interface EmployeeProfile {
   dateOfBirth?: string;
 
 
-  // Employment Information
-  employeeId: string;
-  role: string;
-  department?: string;
-  joiningDate: string;
-  employmentType?: 'Full-Time' | 'Part-Time' | 'Contract';
-  supervisor?: string;
-
-  // System Information
-  accountCreated: string;
-  lastLogin?: string;
-  status: 'Active' | 'Suspended';
-  accessRole: string;
+  // Employment Information - removed (managed by admin)
+  // System Information - removed (managed internally)
 
   // Address Information
   addressLine1?: string;
@@ -78,20 +67,6 @@ const Profile: React.FC = () => {
     gender: undefined,
     dateOfBirth: undefined,
 
-    // Employment Information
-    employeeId: '',
-    role: '',
-    department: undefined,
-    joiningDate: '',
-    employmentType: undefined,
-    supervisor: undefined,
-
-    // System Information
-    accountCreated: new Date().toISOString(),
-    lastLogin: undefined,
-    status: 'Active',
-    accessRole: 'Employee',
-
     // Address Information
     addressLine1: undefined,
     addressLine2: undefined,
@@ -123,20 +98,6 @@ const Profile: React.FC = () => {
           phoneNumber: profileData.phone_number || '',
           gender: profileData.gender as 'Male' | 'Female' | 'Other' | undefined,
           dateOfBirth: profileData.date_of_birth || '',
-
-          // Employment Information
-          employeeId: profileData.employee_id || '',
-          role: profileData.role || '',
-          department: profileData.department || '',
-          joiningDate: profileData.joining_date || '',
-          employmentType: profileData.employment_type as 'Full-Time' | 'Part-Time' | 'Contract' | undefined,
-          supervisor: profileData.supervisor || '',
-
-          // System Information
-          accountCreated: profileData.account_created || new Date().toISOString(),
-          lastLogin: profileData.last_login || '',
-          status: profileData.is_active ? 'Active' : 'Suspended',
-          accessRole: profileData.user_role || profileData.access_role || 'Employee',
 
           // Address Information
           addressLine1: profileData.address_line1 || '',
@@ -263,8 +224,9 @@ const Profile: React.FC = () => {
         open={!!error} 
         autoHideDuration={6000} 
         onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={() => setError(null)} severity="error">
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
           {error}
         </Alert>
       </Snackbar>
@@ -274,8 +236,9 @@ const Profile: React.FC = () => {
         open={!!successMessage} 
         autoHideDuration={6000} 
         onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={() => setSuccessMessage(null)} severity="success">
+        <Alert onClose={() => setSuccessMessage(null)} severity="success" sx={{ width: '100%' }}>
           {successMessage}
         </Alert>
       </Snackbar>
@@ -395,106 +358,15 @@ const Profile: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Employment Information Card */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Employment Information
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-              gap: 2
-            }}
-          >
-            <TextField
-              fullWidth
-              label="Employee ID"
-              value={profile.employeeId}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Role / Designation"
-              value={profile.role}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Department"
-              value={profile.department || ''}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Joining Date"
-              value={profile.joiningDate}
-              disabled
-            />
-            <TextField
-              select
-              fullWidth
-              label="Employment Type"
-              value={profile.employmentType || ''}
-              disabled
-            >
-              {['Full-Time', 'Part-Time', 'Contract'].map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              fullWidth
-              label="Supervisor / Manager"
-              value={profile.supervisor || ''}
-              disabled
-            />
-          </Box>
-        </CardContent>
-      </Card>
 
-      {/* System Information Card */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            System Information
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-              gap: 2
-            }}
-          >
-            <TextField
-              fullWidth
-              label="Account Created"
-              value={new Date(profile.accountCreated).toLocaleDateString()}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Last Login"
-              value={profile.lastLogin ? new Date(profile.lastLogin).toLocaleString() : 'N/A'}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Status"
-              value={profile.status}
-              disabled
-            />
-            <TextField
-              fullWidth
-              label="Access Role"
-              value={profile.accessRole}
-              disabled
-            />
-          </Box>
-        </CardContent>
-      </Card>
+
+      {/* Employment Information Card - REMOVED */}
+      {/* This section is now managed through the admin/HR system */}
+
+
+
+      {/* System Information Card - REMOVED */}
+      {/* This section is now managed internally by the system */}
 
 
       {/* Change Password Dialog */}
