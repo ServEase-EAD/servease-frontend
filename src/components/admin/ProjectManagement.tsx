@@ -54,9 +54,11 @@ import {
   updateTask,
   deleteTask,
   getAllUsers,
+  getAllVehicles,
   type Project,
   type Task,
   type User,
+  type Vehicle,
 } from "../../services/adminService";
 
 interface ProjectStats {
@@ -81,6 +83,7 @@ const ProjectManagement: React.FC = () => {
   });
   const [employees, setEmployees] = useState<User[]>([]);
   const [customers, setCustomers] = useState<User[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -132,13 +135,14 @@ const ProjectManagement: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load projects, employees, and customers
-      const [allProjects, pendingProjs, employeesData, customersData] =
+      // Load projects, employees, customers, and vehicles
+      const [allProjects, pendingProjs, employeesData, customersData, vehiclesData] =
         await Promise.all([
           getAllProjects(),
           getPendingProjects(),
           getAllUsers("employee"),
           getAllUsers("customer"),
+          getAllVehicles(),
         ]);
 
       console.log(
@@ -159,6 +163,11 @@ const ProjectManagement: React.FC = () => {
       setPendingProjects(pendingProjs);
       setEmployees(employeesData);
       setCustomers(customersData);
+      setVehicles(vehiclesData);
+      
+      console.log("Loaded vehicles:", vehiclesData.length);
+      console.log("Sample vehicle:", vehiclesData[0]);
+      console.log("Sample project vehicle_id:", allProjects[0]?.vehicle_id);
 
       // Try to load tasks, but don't fail if the endpoint is not available
       try {
@@ -198,6 +207,24 @@ const ProjectManagement: React.FC = () => {
       return `${customer.first_name} ${customer.last_name}`;
     }
     return customerId; // Fallback to ID if customer not found
+  };
+
+  const getEmployeeName = (employeeId: string): string => {
+    const employee = employees.find((e) => e.id === employeeId);
+    if (employee) {
+      return `${employee.first_name} ${employee.last_name}`;
+    }
+    return employeeId; // Fallback to ID if employee not found
+  };
+
+  const getVehicleName = (vehicleId: string): string => {
+    const vehicle = vehicles.find((v) => v.id === vehicleId || v.vehicle_id === vehicleId);
+    if (vehicle) {
+      const plateNumber = vehicle.plate_number || "No Plate";
+      return `${vehicle.make} ${vehicle.model} (${plateNumber})`;
+    }
+    // Fallback: return ID if vehicle not found
+    return `Vehicle ID: ${vehicleId}`;
   };
 
   const handleApproveClick = (project: Project) => {
@@ -531,7 +558,7 @@ const ProjectManagement: React.FC = () => {
                 <TableRow key={project.id}>
                   <TableCell>{project.title}</TableCell>
                   <TableCell>{getCustomerName(project.customer_id)}</TableCell>
-                  <TableCell>{project.vehicle_id}</TableCell>
+                  <TableCell>{getVehicleName(project.vehicle_id)}</TableCell>
                   <TableCell>
                     <Chip
                       label={project.status}
@@ -580,8 +607,7 @@ const ProjectManagement: React.FC = () => {
                           >
                             <Visibility />
                           </IconButton>
-                          {(project.status === "in_progress" ||
-                            project.status === "accepted") && (
+                          {project.status === "in_progress" && (
                             <>
                               <IconButton
                                 size="small"
@@ -643,7 +669,9 @@ const ProjectManagement: React.FC = () => {
                     {task.project || task.appointment || "N/A"}
                   </TableCell>
                   <TableCell>
-                    {task.assigned_employee_id || "Unassigned"}
+                    {task.assigned_employee_id 
+                      ? getEmployeeName(task.assigned_employee_id)
+                      : "Unassigned"}
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -832,10 +860,10 @@ const ProjectManagement: React.FC = () => {
                     </Box>
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
-                        Vehicle ID
+                        Vehicle
                       </Typography>
                       <Typography variant="body1">
-                        {selectedProject.vehicle_id}
+                        {getVehicleName(selectedProject.vehicle_id)}
                       </Typography>
                     </Box>
                     <Box>
@@ -1095,18 +1123,18 @@ const ProjectManagement: React.FC = () => {
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Customer ID
+                    Customer Name
                   </Typography>
                   <Typography variant="body1">
-                    {selectedProject.customer_id}
+                    {getCustomerName(selectedProject.customer_id)}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Vehicle ID
+                    Vehicle
                   </Typography>
                   <Typography variant="body1">
-                    {selectedProject.vehicle_id}
+                    {getVehicleName(selectedProject.vehicle_id)}
                   </Typography>
                 </Box>
                 <Box>
@@ -1160,9 +1188,11 @@ const ProjectManagement: React.FC = () => {
                       <ListItem key={task.task_id || task.id}>
                         <ListItemText
                           primary={task.title}
-                          secondary={`Status: ${task.status} | Due: ${
-                            task.due_date || "No deadline"
-                          }`}
+                          secondary={`Status: ${task.status} | Assigned: ${
+                            task.assigned_employee_id 
+                              ? getEmployeeName(task.assigned_employee_id)
+                              : "Unassigned"
+                          } | Due: ${task.due_date || "No deadline"}`}
                         />
                         <ListItemSecondaryAction>
                           <Chip
@@ -1307,18 +1337,18 @@ const ProjectManagement: React.FC = () => {
                   >
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
-                        Customer ID
+                        Customer Name
                       </Typography>
                       <Typography variant="body1">
-                        {selectedProject.customer_id}
+                        {getCustomerName(selectedProject.customer_id)}
                       </Typography>
                     </Box>
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
-                        Vehicle ID
+                        Vehicle
                       </Typography>
                       <Typography variant="body1">
-                        {selectedProject.vehicle_id}
+                        {getVehicleName(selectedProject.vehicle_id)}
                       </Typography>
                     </Box>
                     <Box>
@@ -1506,7 +1536,7 @@ const ProjectManagement: React.FC = () => {
                                 />
                                 {task.assigned_employee_id && (
                                   <Typography variant="body2">
-                                    👤 Assigned to: {task.assigned_employee_id}
+                                    👤 Assigned to: {getEmployeeName(task.assigned_employee_id)}
                                   </Typography>
                                 )}
                                 {task.due_date && (
