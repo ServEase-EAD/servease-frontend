@@ -333,15 +333,21 @@ export const getProjectProgress = async (): Promise<Project[]> => {
 };
 
 /**
- * Approve a project
+ * Approve a project with tasks and employee assignments
  */
 export const approveProject = async (
   projectId: string,
-  assignedEmployeeId?: string
-): Promise<{ message: string }> => {
+  tasks: Array<{
+    title: string;
+    description?: string;
+    assigned_employee_id: string;
+    priority?: string;
+    due_date?: string;
+  }>
+): Promise<{ message: string; data: { project: Project; tasks: Task[] } }> => {
   const response = await apiClient.post(
     `/api/v1/admin/projects/${projectId}/approve/`,
-    { assigned_employee_id: assignedEmployeeId }
+    { tasks }
   );
   return response.data;
 };
