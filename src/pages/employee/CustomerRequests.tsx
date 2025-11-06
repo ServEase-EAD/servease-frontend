@@ -184,6 +184,7 @@ const CustomerRequests: React.FC = () => {
     const map: Record<string, string> = {
       pending: "Pending Confirmation",
       confirmed: "Confirmed",
+      not_started: "Confirmed",
       in_progress: "In Progress",
       completed: "Completed",
       cancelled: "Cancelled",
@@ -199,6 +200,7 @@ const CustomerRequests: React.FC = () => {
       case "in_progress":
         return "warning";
       case "confirmed":
+      case "not_started":
         return "info";
       case "pending":
         return "error";
@@ -360,6 +362,7 @@ const CustomerRequests: React.FC = () => {
                   pending: "Confirm",
                   confirmed: "Start Work",
                   in_progress: "Complete",
+                  not_started: "Start Work",
                 };
                 const nextButtonLabel =
                   nextStatusLabelMap[task.status.toLowerCase()] || "";

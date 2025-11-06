@@ -249,8 +249,8 @@ const MyTasks: React.FC = () => {
     const map: Record<string, string> = {
       pending: "Pending",
       confirmed: "Confirmed",
+      not_started: "Confirmed",
       in_progress: "In Progress",
-      not_started: "Not Started",
       completed: "Completed",
       cancelled: "Cancelled",
       no_show: "No Show",
@@ -267,9 +267,9 @@ const MyTasks: React.FC = () => {
       case "in_progress":
         return "warning";
       case "confirmed":
+      case "not_started":
         return "info";
       case "pending":
-      case "not_started":
         return "error";
       default:
         return "default";
@@ -328,7 +328,7 @@ const MyTasks: React.FC = () => {
   const getNextButtonLabel = (status: string) => {
     const map: Record<string, string> = {
       pending: "Confirm",
-      not_started: "Start",
+      not_started: "Start Work",
       confirmed: "Start Work",
       in_progress: "Complete",
     };
