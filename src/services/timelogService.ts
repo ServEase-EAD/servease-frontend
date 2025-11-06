@@ -3,7 +3,7 @@
  * Handles all API calls related to time logs and shifts
  */
 
-import axios from "axios";
+import apiClient from "./apiService";
 import { API_ENDPOINTS } from "../config/api.config";
 import type {
   TimeLog,
@@ -15,18 +15,6 @@ import type {
   TimeFilterOption,
 } from "../types";
 
-// Create axios instance with base URL and auth
-const createAuthenticatedAxios = () => {
-  const token = localStorage.getItem("access_token");
-  return axios.create({
-    baseURL: "http://localhost", // Through Nginx
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-};
-
 /**
  * TimeLog API Service
  * All endpoints use JWT token for employee identification
@@ -36,17 +24,28 @@ export const timelogService = {
    * Get all time logs for logged-in employee
    */
   getAllTimeLogs: async (): Promise<TimeLog[]> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.get(API_ENDPOINTS.TIMELOGS.LIST);
-    return response.data;
+    const response = await apiClient.get(API_ENDPOINTS.TIMELOGS.LIST);
+    // Backend returns array directly from DRF serializer
+    // Handle both array response and object with data property
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data && Array.isArray(response.data.results)) {
+      // Paginated response
+      return response.data.results;
+    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // Wrapped in data property
+      return response.data.data;
+    }
+    // If it's not an array, return empty array to prevent errors
+    console.warn('Unexpected response format from getAllTimeLogs:', response.data);
+    return [];
   },
 
   /**
    * Get a specific time log by ID
    */
   getTimeLog: async (logId: string): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.get(API_ENDPOINTS.TIMELOGS.DETAIL(logId));
+    const response = await apiClient.get(API_ENDPOINTS.TIMELOGS.DETAIL(logId));
     return response.data;
   },
 
@@ -56,8 +55,7 @@ export const timelogService = {
   getEmployeeLogs: async (
     filter: TimeFilterOption = "all_time"
   ): Promise<EmployeeLogsResponse> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.get(API_ENDPOINTS.TIMELOGS.EMPLOYEE_LOGS, {
+    const response = await apiClient.get(API_ENDPOINTS.TIMELOGS.EMPLOYEE_LOGS, {
       params: {
         filter: filter,
       },
@@ -71,12 +69,12 @@ export const timelogService = {
   getTimeLogStats: async (
     filter: TimeFilterOption = "all_time"
   ): Promise<TimeLogStats> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.get(API_ENDPOINTS.TIMELOGS.STATS, {
+    const response = await apiClient.get(API_ENDPOINTS.TIMELOGS.STATS, {
       params: {
         filter: filter,
       },
     });
+    // Backend returns stats object directly
     return response.data;
   },
 
@@ -87,8 +85,7 @@ export const timelogService = {
     startDate?: string,
     endDate?: string
   ): Promise<DailyTotalsResponse> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.get(API_ENDPOINTS.TIMELOGS.DAILY_TOTALS, {
+    const response = await apiClient.get(API_ENDPOINTS.TIMELOGS.DAILY_TOTALS, {
       params: {
         ...(startDate && { start_date: startDate }),
         ...(endDate && { end_date: endDate }),
@@ -101,8 +98,7 @@ export const timelogService = {
    * Create a new time log
    */
   createTimeLog: async (data: CreateTimeLogRequest): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.post(API_ENDPOINTS.TIMELOGS.CREATE, data);
+    const response = await apiClient.post(API_ENDPOINTS.TIMELOGS.CREATE, data);
     return response.data;
   },
 
@@ -113,8 +109,7 @@ export const timelogService = {
     logId: string,
     data: UpdateTimeLogRequest
   ): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.patch(
+    const response = await apiClient.patch(
       API_ENDPOINTS.TIMELOGS.UPDATE(logId),
       data
     );
@@ -122,38 +117,34 @@ export const timelogService = {
   },
 
   /**
-   * Delete a time log
-   */
-  deleteTimeLog: async (logId: string): Promise<void> => {
-    const api = createAuthenticatedAxios();
-    await api.delete(API_ENDPOINTS.TIMELOGS.DELETE(logId));
-  },
-
-  /**
    * Start or resume a time log
+   * Backend sets start_time = now on each start/resume
    */
   startTimeLog: async (logId: string): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.post(API_ENDPOINTS.TIMELOGS.START(logId));
+    const response = await apiClient.post(API_ENDPOINTS.TIMELOGS.START(logId));
+    // Backend returns TimeLog directly (not wrapped)
     return response.data;
   },
 
   /**
    * Pause a time log
+   * Backend accumulates duration: duration_seconds += (now - start_time)
    */
   pauseTimeLog: async (logId: string): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.post(API_ENDPOINTS.TIMELOGS.PAUSE(logId));
+    const response = await apiClient.post(API_ENDPOINTS.TIMELOGS.PAUSE(logId));
+    // Backend returns TimeLog directly (not wrapped)
     return response.data;
   },
 
   /**
    * Complete a time log
+   * Backend accumulates duration: duration_seconds += (end_time - start_time)
+   * Total duration includes all pause/resume cycles
    */
   completeTimeLog: async (logId: string): Promise<TimeLog> => {
-    const api = createAuthenticatedAxios();
-    const response = await api.post(API_ENDPOINTS.TIMELOGS.COMPLETE(logId));
-    return response.data;
+    const response = await apiClient.post(API_ENDPOINTS.TIMELOGS.COMPLETE(logId));
+    // Backend returns { message: string, data: TimeLog }
+    return response.data.data || response.data;
   },
 };
 

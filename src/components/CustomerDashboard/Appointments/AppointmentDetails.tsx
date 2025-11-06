@@ -20,7 +20,6 @@ import {
 import {
   Event as EventIcon,
   DirectionsCar as CarIcon,
-  Person as PersonIcon,
   CalendarMonth as CalendarIcon,
   AccessTime as TimeIcon,
   Description as DescriptionIcon,
@@ -162,15 +161,8 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
             <Divider sx={{ mb: 3 }} />
 
-            {/* Customer & Vehicle */}
+            {/* Vehicle */}
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <PersonIcon sx={{ mr: 1, color: "text.secondary" }} />
-                <Typography variant="body1">
-                  <strong>Customer:</strong>{" "}
-                  {appointment.customer_name || "N/A"}
-                </Typography>
-              </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <CarIcon sx={{ mr: 1, color: "text.secondary" }} />
                 <Typography variant="body1">

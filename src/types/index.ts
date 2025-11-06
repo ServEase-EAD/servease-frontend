@@ -2,6 +2,22 @@
  * Type definitions for the ServEase application
  */
 
+// Vehicle details interface (used by enriched appointment data)
+export interface VehicleDetails {
+  vehicle_id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  vin: string;
+  plate_number: string;
+  display_name: string;
+  age: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // User related types
 export interface User {
   id: string;
@@ -185,7 +201,7 @@ export interface Appointment {
   completed_at?: string | null;
   // Computed fields from backend
   customer_name?: string;
-  vehicle_details?: string;
+  vehicle_details?: string | VehicleDetails; // Can be string (legacy) or object (enriched)
   employee_name?: string;
   time_until_appointment?: string;
 }
@@ -302,7 +318,7 @@ export type TaskType = "project" | "appointment";
 
 export interface TimeLog {
   log_id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   shift?: string | null;
   task_type: TaskType;
   project_id?: string | null;
@@ -346,7 +362,7 @@ export interface UpdateTimeLogRequest {
 
 export interface DailyTimeTotal {
   id: string;
-  employee_id: number;
+  employee_id: string; // UUID from backend
   log_date: string;
   total_hours: number;
   total_hours_formatted: string;
@@ -361,7 +377,7 @@ export interface DailyTimeTotal {
 }
 
 export interface TimeLogStats {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   total_hours: string;
   total_entries: number;
   avg_hours_per_day: string;
@@ -375,7 +391,7 @@ export interface TimeLogStats {
 
 export interface EmployeeLogsResponse {
   message?: string;
-  employee_id?: number;
+  employee_id?: string; // UUID from backend
   filter: string;
   data: {
     [date: string]: TimeLog[];
@@ -383,7 +399,7 @@ export interface EmployeeLogsResponse {
 }
 
 export interface DailyTotalsResponse {
-  employee_id: number;
+  employee_id: string; // UUID from backend
   date_range: {
     start_date?: string;
     end_date?: string;
