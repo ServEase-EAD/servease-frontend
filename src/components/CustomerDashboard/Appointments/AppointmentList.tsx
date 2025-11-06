@@ -282,7 +282,9 @@ const AppointmentList: React.FC = () => {
                         {appointment.customer_name || "N/A"}
                       </TableCell>
                       <TableCell>
-                        {appointment.vehicle_details || "N/A"}
+                        {typeof appointment.vehicle_details === 'object' 
+                          ? appointment.vehicle_details?.display_name || "N/A"
+                          : appointment.vehicle_details || "N/A"}
                       </TableCell>
                       <TableCell>
                         <Chip
