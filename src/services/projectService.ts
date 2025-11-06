@@ -15,7 +15,13 @@ export interface Project {
   title: string;
   description: string;
   expected_completion_date: string;
-  status: "accepted" | "cancelled" | "not_started" | "in_progress" | "completed" | "on_hold";
+  status:
+    | "accepted"
+    | "cancelled"
+    | "not_started"
+    | "in_progress"
+    | "completed"
+    | "on_hold";
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +53,7 @@ export interface Task {
   task_id: string;
   project: string;
   project_name?: string; // Add project name for display
+  vehicle?: string; // Add vehicle for display
   title: string;
   description: string;
   status: "not_started" | "in_progress" | "completed" | "blocked";
@@ -62,7 +69,9 @@ export interface Task {
  */
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    const response = await apiClient.get<Project[]>(API_ENDPOINTS.PROJECTS.LIST);
+    const response = await apiClient.get<Project[]>(
+      API_ENDPOINTS.PROJECTS.LIST
+    );
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -75,7 +84,9 @@ export const getProjects = async (): Promise<Project[]> => {
  */
 export const getProjectById = async (projectId: string): Promise<Project> => {
   try {
-    const response = await apiClient.get<Project>(API_ENDPOINTS.PROJECTS.DETAIL(projectId));
+    const response = await apiClient.get<Project>(
+      API_ENDPOINTS.PROJECTS.DETAIL(projectId)
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching project ${projectId}:`, error);
@@ -86,9 +97,14 @@ export const getProjectById = async (projectId: string): Promise<Project> => {
 /**
  * Create a new project
  */
-export const createProject = async (data: CreateProjectData): Promise<Project> => {
+export const createProject = async (
+  data: CreateProjectData
+): Promise<Project> => {
   try {
-    const response = await apiClient.post<Project>(API_ENDPOINTS.PROJECTS.CREATE, data);
+    const response = await apiClient.post<Project>(
+      API_ENDPOINTS.PROJECTS.CREATE,
+      data
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating project:", error);
@@ -99,7 +115,10 @@ export const createProject = async (data: CreateProjectData): Promise<Project> =
 /**
  * Update an existing project
  */
-export const updateProject = async (projectId: string, data: UpdateProjectData): Promise<Project> => {
+export const updateProject = async (
+  projectId: string,
+  data: UpdateProjectData
+): Promise<Project> => {
   try {
     const response = await apiClient.patch<Project>(
       API_ENDPOINTS.PROJECTS.UPDATE(projectId),
@@ -115,7 +134,9 @@ export const updateProject = async (projectId: string, data: UpdateProjectData):
 /**
  * Delete a project
  */
-export const deleteProject = async (projectId: string): Promise<{ message: string }> => {
+export const deleteProject = async (
+  projectId: string
+): Promise<{ message: string }> => {
   try {
     const response = await apiClient.delete<{ message: string }>(
       API_ENDPOINTS.PROJECTS.DELETE(projectId)
@@ -132,7 +153,7 @@ export const deleteProject = async (projectId: string): Promise<{ message: strin
  */
 export const getEmployeeTasks = async (): Promise<Task[]> => {
   try {
-    const response = await apiClient.get<Task[]>('/api/v1/projects/tasks/');
+    const response = await apiClient.get<Task[]>("/api/v1/projects/tasks/");
     const tasks = Array.isArray(response.data) ? response.data : [];
 
     // If no tasks, return empty array
@@ -141,23 +162,77 @@ export const getEmployeeTasks = async (): Promise<Task[]> => {
     }
 
     // Get unique project IDs
-    const projectIds = [...new Set(tasks.map(task => task.project))];
+    const projectIds = [...new Set(tasks.map((task) => task.project))];
 
     // Fetch project details for all unique project IDs
-    const projectPromises = projectIds.map(projectId => getProjectById(projectId));
+    const projectPromises = projectIds.map((projectId) =>
+      getProjectById(projectId)
+    );
     const projects = await Promise.all(projectPromises);
 
-    // Create a map of project ID to project name
-    const projectMap = new Map<string, string>();
-    projects.forEach(project => {
-      projectMap.set(project.project_id, project.title);
+    // Get unique vehicle IDs from projects
+    const vehicleIds = [...new Set(projects.map((project) => project.vehicle))];
+
+    // Fetch vehicle details for all unique vehicle IDs
+    const vehiclePromises = vehicleIds.map(async (vehicleId) => {
+      try {
+        const vehicleResponse = await apiClient.get(
+          API_ENDPOINTS.VEHICLES.DETAIL(vehicleId)
+        );
+        const vehicle = vehicleResponse.data;
+        // Format vehicle details similar to appointment service
+        const year = vehicle.year || "";
+        const make = vehicle.make || "Unknown";
+        const model = vehicle.model || "Vehicle";
+        const plate = vehicle.plate_number || "";
+
+        const displayParts = [];
+        if (year) displayParts.push(String(year));
+        displayParts.push(make, model);
+        const displayName = displayParts.filter(Boolean).join(" ");
+
+        return {
+          id: vehicleId,
+          details: plate ? `${displayName} (${plate})` : displayName,
+        };
+      } catch (error) {
+        console.error(`Error fetching vehicle ${vehicleId}:`, error);
+        return {
+          id: vehicleId,
+          details: "Unknown Vehicle",
+        };
+      }
     });
 
-    // Enrich tasks with project names
-    const enrichedTasks = tasks.map(task => ({
-      ...task,
-      project_name: projectMap.get(task.project) || 'Unknown Project'
-    }));
+    const vehicles = await Promise.all(vehiclePromises);
+
+    // Create maps for project data and vehicle details
+    const projectMap = new Map<string, { name: string; vehicleId: string }>();
+    projects.forEach((project) => {
+      projectMap.set(project.project_id, {
+        name: project.title,
+        vehicleId: project.vehicle,
+      });
+    });
+
+    const vehicleMap = new Map<string, string>();
+    vehicles.forEach((vehicle) => {
+      vehicleMap.set(vehicle.id, vehicle.details);
+    });
+
+    // Enrich tasks with project names and vehicle info
+    const enrichedTasks = tasks.map((task) => {
+      const projectData = projectMap.get(task.project);
+      const vehicleDetails = projectData
+        ? vehicleMap.get(projectData.vehicleId)
+        : undefined;
+
+      return {
+        ...task,
+        project_name: projectData?.name || "Unknown Project",
+        vehicle: vehicleDetails || "Unknown Vehicle",
+      };
+    });
 
     return enrichedTasks;
   } catch (error) {
@@ -171,7 +246,9 @@ export const getEmployeeTasks = async (): Promise<Task[]> => {
  */
 export const getTaskById = async (taskId: string): Promise<Task> => {
   try {
-    const response = await apiClient.get<Task>(`/api/v1/projects/tasks/${taskId}/`);
+    const response = await apiClient.get<Task>(
+      `/api/v1/projects/tasks/${taskId}/`
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching task ${taskId}:`, error);

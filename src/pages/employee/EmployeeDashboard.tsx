@@ -18,7 +18,6 @@ import {
   Dashboard as DashboardIcon,
   Assignment as TaskIcon,
   People as CustomerIcon,
-  Build as ServiceIcon,
   Assessment as ReportIcon,
   ExitToApp as LogoutIcon,
 } from "@mui/icons-material";
@@ -29,9 +28,8 @@ import { getUserFromToken } from "../../services/authService";
 
 // Import components
 import DashboardContent from "./DashboardContent";
-import CustomerRequests from "./CustomerRequests";
+import MyTasks from "./MyTasks";
 import CustomerManagement from "./CustomerManagement";
-import ServiceRequests from "./ServiceRequests";
 import ReportsAnalytics from "./ReportsAnalytics";
 
 const DRAWER_WIDTH = 280;
@@ -51,9 +49,8 @@ const EmployeeDashboard: React.FC = () => {
 
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, value: "dashboard" },
-    { text: "Customer Requests", icon: <TaskIcon />, value: "tasks" },
+    { text: "My Tasks", icon: <TaskIcon />, value: "tasks" },
     { text: "Customer Management", icon: <CustomerIcon />, value: "customers" },
-    { text: "Service Requests", icon: <ServiceIcon />, value: "services" },
     { text: "Reports & Analytics", icon: <ReportIcon />, value: "reports" },
   ];
 
@@ -62,11 +59,9 @@ const EmployeeDashboard: React.FC = () => {
       case "dashboard":
         return <DashboardContent />;
       case "tasks":
-        return <CustomerRequests />;
+        return <MyTasks />;
       case "customers":
         return <CustomerManagement />;
-      case "services":
-        return <ServiceRequests />;
       case "reports":
         return <ReportsAnalytics />;
       default:
