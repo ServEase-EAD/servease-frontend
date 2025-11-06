@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -7,9 +7,8 @@ import {
   Box,
   IconButton,
   Chip,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import type { VehicleDetails } from '../../services/enhancedDataService';
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface Task {
   id: string;
@@ -37,23 +36,27 @@ interface TaskDetailsDialogProps {
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
-    case 'completed':
-      return 'success';
-    case 'in progress':
-      return 'warning';
-    case 'pending':
-      return 'error';
+    case "completed":
+      return "success";
+    case "in progress":
+      return "warning";
+    case "pending":
+      return "error";
     default:
-      return 'default';
+      return "default";
   }
 };
 
-const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, task }) => {
+const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
+  open,
+  onClose,
+  task,
+}) => {
   if (!task) return null;
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
@@ -61,15 +64,15 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, ta
         sx: {
           borderRadius: 2,
           boxShadow: 3,
-        }
+        },
       }}
     >
-      <DialogTitle 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          pb: 1
+      <DialogTitle
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          pb: 1,
         }}
       >
         <Typography variant="h6">Task Details</Typography>
@@ -87,18 +90,54 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, ta
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'grid', gap: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">Customer Name</Typography>
-            <Typography variant="body1">
-              {task.customer_name}
+        <Box sx={{ display: "grid", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle2">Customer ID</Typography>
+            <Typography variant="body1" fontWeight="medium">
+              {task.customer_id}
             </Typography>
           </Box>
 
-          {/* Vehicle Details Section */}
-          <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #eee' }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold' }}>
-              Vehicle Details
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle2">Customer Name</Typography>
+            <Typography variant="body1">{task.customer_name}</Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle2">Vehicle ID</Typography>
+            <Typography variant="body1">{task.vehicle_id}</Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle2">Vehicle Details</Typography>
+            <Typography variant="body1">
+              {typeof task.vehicle_details === "string"
+                ? task.vehicle_details
+                : "Unknown Vehicle"}
             </Typography>
             
             {task.vehicle_details ? (
@@ -153,21 +192,35 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({ open, onClose, ta
             )}
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Typography variant="subtitle2">Date</Typography>
-            <Typography variant="body1">
-              {task.scheduled_date}
-            </Typography>
+            <Typography variant="body1">{task.scheduled_date}</Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Typography variant="subtitle2">Time</Typography>
-            <Typography variant="body1">
-              {task.scheduled_time}
-            </Typography>
+            <Typography variant="body1">{task.scheduled_time}</Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Typography variant="subtitle2">Status</Typography>
             <Chip
               label={task.status}
