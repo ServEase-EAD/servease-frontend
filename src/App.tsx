@@ -10,6 +10,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EnhancedAdminDashboard from "./components/admin/EnhancedAdminDashboard";
+import { ChatbotButton } from "./components/chatbot";
 import "./App.css";
 
 // Temporary Home component until you create a proper one
@@ -33,6 +34,9 @@ const HomePage: React.FC = () => {
 };
 
 function App() {
+  // Check if user is authenticated
+  const isAuthenticated = !!localStorage.getItem("token");
+
   return (
     <Router>
       <Routes>
@@ -66,6 +70,9 @@ function App() {
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Chatbot Button - Available for all authenticated users */}
+      {isAuthenticated && <ChatbotButton />}
     </Router>
   );
 }
