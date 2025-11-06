@@ -1,0 +1,635 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  MenuItem,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Chip,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Menu,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import {
+  AccessTime as ClockIcon,
+  TrendingUp as TrendingUpIcon,
+  Schedule as ScheduleIcon,
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+} from '@mui/icons-material';
+import { timelogService } from '../../services/timelogService';
+import type { TimeLog, TimeLogStats, TimeFilterOption } from '../../types';
+
+interface GroupedTimeLogs {
+  [date: string]: TimeLog[];
+}
+
+const TimeLogs: React.FC = () => {
+  // Filter state
+  const [timeFilter, setTimeFilter] = useState<TimeFilterOption>('all_time');
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // Data states
+  const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
+  const [stats, setStats] = useState<TimeLogStats | null>(null);
+  const [activeTimeLog, setActiveTimeLog] = useState<TimeLog | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Timer state for active log
+  const [currentSeconds, setCurrentSeconds] = useState(0);
+
+  // Fetch data when component mounts or filter changes
+  useEffect(() => {
+    fetchTimeLogsData();
+  }, [timeFilter]);
+
+  // Update timer for active log
+  useEffect(() => {
+    let interval: number | undefined;
+    
+    if (activeTimeLog && activeTimeLog.status === 'inprogress') {
+      // Capture values at the time of setting up the interval
+      const startTimeMs = new Date(activeTimeLog.start_time).getTime();
+      const accumulatedDuration = activeTimeLog.duration_seconds || 0;
+      
+      console.log('🚀 Timer started/resumed:', {
+        log_id: activeTimeLog.log_id,
+        accumulatedDuration,
+        accumulatedFormatted: formatTime(accumulatedDuration),
+        start_time: activeTimeLog.start_time,
+        startTimeMs,
+        currentTime: Date.now(),
+        localStartTime: new Date(activeTimeLog.start_time).toLocaleString(),
+      });
+      
+      // Initial update - calculate elapsed time since last resume
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - startTimeMs) / 1000);
+      const totalSeconds = accumulatedDuration + elapsedSeconds;
+      console.log('⏱️ Initial timer value:', { 
+        elapsedSeconds, 
+        elapsedFormatted: formatTime(elapsedSeconds),
+        totalSeconds,
+        totalFormatted: formatTime(totalSeconds)
+      });
+      setCurrentSeconds(totalSeconds);
+      
+      // For in-progress logs: show accumulated duration + current session time
+      interval = window.setInterval(() => {
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - startTimeMs) / 1000);
+        const totalSeconds = accumulatedDuration + elapsedSeconds;
+        setCurrentSeconds(totalSeconds);
+      }, 1000);
+    } else if (activeTimeLog && activeTimeLog.status === 'paused') {
+      // For paused logs: show only accumulated duration (frozen)
+      const pausedDuration = activeTimeLog.duration_seconds || 0;
+      console.log('⏸️ Timer paused at:', { 
+        pausedDuration, 
+        pausedFormatted: formatTime(pausedDuration),
+        log_id: activeTimeLog.log_id 
+      });
+      setCurrentSeconds(pausedDuration);
+    } else {
+      // No active log
+      console.log('⏹️ Timer stopped - no active log');
+      setCurrentSeconds(0);
+    }
+    
+    return () => {
+      if (interval) {
+        window.clearInterval(interval);
+      }
+    };
+  }, [activeTimeLog]);
+
+  const fetchTimeLogsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all time logs and stats
+      const [logsData, statsData] = await Promise.all([
+        timelogService.getAllTimeLogs(),
+        timelogService.getTimeLogStats(timeFilter),
+      ]);
+      
+      console.log('Fetched logs:', logsData);
+      console.log('Fetched stats:', statsData);
+      
+      // Ensure logsData is an array
+      const logsArray = Array.isArray(logsData) ? logsData : [];
+      setTimeLogs(logsArray);
+      setStats(statsData);
+      
+      // Find active time log (in progress or paused)
+      const activeLog = logsArray.find(
+        (log: TimeLog) => log.status === 'inprogress' || log.status === 'paused'
+      );
+      
+      console.log('Active log found:', activeLog);
+      if (activeLog) {
+        console.log('Active log details:', {
+          log_id: activeLog.log_id,
+          status: activeLog.status,
+          duration_seconds: activeLog.duration_seconds,
+          start_time: activeLog.start_time,
+          description: activeLog.description,
+        });
+      }
+      setActiveTimeLog(activeLog || null);
+      
+    } catch (err: any) {
+      console.error('Error fetching time logs:', err);
+      const errorMessage = err.response?.data?.error 
+        || err.response?.data?.message 
+        || err.response?.data?.detail
+        || err.message 
+        || 'Failed to load time logs';
+      setError(errorMessage);
+      setTimeLogs([]);
+      setStats(null);
+      setActiveTimeLog(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (seconds: number): string => {
+    const hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const mm = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const ss = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  };
+
+  // Group time logs by date
+  const groupTimeLogsByDate = (): GroupedTimeLogs => {
+    const grouped: GroupedTimeLogs = {};
+    
+    // Ensure timeLogs is an array
+    if (!Array.isArray(timeLogs)) {
+      console.warn('timeLogs is not an array:', timeLogs);
+      return grouped;
+    }
+    
+    // Filter by search query
+    const filteredLogs = timeLogs.filter(log =>
+      log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.vehicle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.service?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    // Group by date
+    filteredLogs.forEach(log => {
+      const dateKey = log.log_date;
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(log);
+    });
+    
+    return grouped;
+  };
+
+  const groupedLogs = groupTimeLogsByDate();
+  
+  // Calculate totals for each day
+  const getDayTotals = (logs: TimeLog[]) => {
+    const totalSeconds = logs.reduce((sum, log) => sum + (log.duration_seconds || 0), 0);
+    const totalHours = (totalSeconds / 3600).toFixed(1);
+    return {
+      count: logs.length,
+      hours: `${totalHours}h`,
+    };
+  };
+
+  // Dialog state for viewing an entry in detail
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<TimeLog | null>(null);
+
+  const handleViewLog = (log: TimeLog) => {
+    setSelectedLog(log);
+    setOpenDialog(true);
+  };
+
+  const handleStatusChange = async (logId: string, newStatus: 'inprogress' | 'paused' | 'completed') => {
+    try {
+      setError(null);
+      let updatedLog: TimeLog;
+      
+      console.log(`📡 Sending ${newStatus} request for log:`, logId);
+      
+      if (newStatus === 'inprogress') {
+        updatedLog = await timelogService.startTimeLog(logId);
+        console.log('✅ Start/Resume response:', {
+          log_id: updatedLog.log_id,
+          status: updatedLog.status,
+          duration_seconds: updatedLog.duration_seconds,
+          start_time: updatedLog.start_time,
+        });
+      } else if (newStatus === 'paused') {
+        updatedLog = await timelogService.pauseTimeLog(logId);
+        console.log('✅ Pause response:', {
+          log_id: updatedLog.log_id,
+          status: updatedLog.status,
+          duration_seconds: updatedLog.duration_seconds,
+          start_time: updatedLog.start_time,
+        });
+      } else {
+        updatedLog = await timelogService.completeTimeLog(logId);
+        console.log('✅ Complete response:', {
+          log_id: updatedLog.log_id,
+          status: updatedLog.status,
+          duration_seconds: updatedLog.duration_seconds,
+          end_time: updatedLog.end_time,
+        });
+      }
+      
+      console.log('🔄 Refreshing time logs data...');
+      
+      // Refresh data to get latest state
+      await fetchTimeLogsData();
+    } catch (err: any) {
+      console.error('Error updating status:', err);
+      
+      // Extract detailed error message
+      let errorMessage = 'Failed to update time log status';
+      
+      if (err.response) {
+        if (err.response.data?.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data?.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error: Please check backend logs. The pause/complete function may have a bug.';
+        } else if (err.response.status === 400) {
+          errorMessage = 'Invalid request: ' + JSON.stringify(err.response.data);
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error: Cannot reach server';
+      } else {
+        errorMessage = err.message || 'Unknown error occurred';
+      }
+      
+      setError(errorMessage);
+      
+      // Refresh data anyway to show current state
+      await fetchTimeLogsData();
+    }
+  };
+
+  const formatFilterLabel = (filter: TimeFilterOption): string => {
+    const labels: Record<TimeFilterOption, string> = {
+      'all_time': 'All Time',
+      'today': 'Today',
+      'this_week': 'This Week',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+    };
+    return labels[filter];
+  };
+
+  const formatDateLabel = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Top header with search and filter */}
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
+        <Box sx={{ flex: 1 }}>
+          <TextField
+            fullWidth
+            placeholder="Search tasks..."
+            size="small"
+            variant="outlined"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+
+        <Box>
+          <IconButton
+            size="small"
+            aria-label="open filter"
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: 1, bgcolor: 'background.paper' }}
+          >
+            <FilterListIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem onClick={() => { setTimeFilter('all_time'); setAnchorEl(null); }}>All Time</MenuItem>
+            <MenuItem onClick={() => { setTimeFilter('today'); setAnchorEl(null); }}>Today</MenuItem>
+            <MenuItem onClick={() => { setTimeFilter('this_week'); setAnchorEl(null); }}>This Week</MenuItem>
+            <MenuItem onClick={() => { setTimeFilter('this_month'); setAnchorEl(null); }}>This Month</MenuItem>
+            <MenuItem onClick={() => { setTimeFilter('last_month'); setAnchorEl(null); }}>Last Month</MenuItem>
+          </Menu>
+        </Box>
+      </Box>
+
+      {/* Current Active Task Card */}
+      {activeTimeLog && (
+        <Card sx={{ borderRadius: 2, mb: 3, bgcolor: '#e3f2fd' }}>
+          <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>Current Task</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>{activeTimeLog.description || 'Untitled Task'}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {activeTimeLog.vehicle || 'No vehicle'} • {activeTimeLog.service || 'No service'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+              <Typography sx={{ fontSize: 32, fontWeight: 700, color: 'primary.main' }}>
+                {formatTime(currentSeconds)}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {activeTimeLog.status === 'inprogress' ? (
+                  <>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      sx={{ textTransform: 'none' }}
+                      onClick={() => handleStatusChange(activeTimeLog.log_id, 'paused')}
+                    >
+                      Pause
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      sx={{ textTransform: 'none' }}
+                      onClick={() => handleStatusChange(activeTimeLog.log_id, 'completed')}
+                    >
+                      Complete
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    sx={{ textTransform: 'none' }}
+                    onClick={() => handleStatusChange(activeTimeLog.log_id, 'inprogress')}
+                  >
+                    Resume
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Summary Statistics */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>
+        <Card sx={{ bgcolor: 'background.paper', borderRadius: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                  Total Hours
+                </Typography>
+                <Typography sx={{ fontSize: 36, fontWeight: '700', color: 'primary.main', mt: 0.5 }}>
+                  {stats?.total_hours || '0.0h'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {formatFilterLabel(timeFilter)}
+                </Typography>
+              </Box>
+              <ClockIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ bgcolor: 'background.paper', borderRadius: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                  Time Entries
+                </Typography>
+                <Typography sx={{ fontSize: 36, fontWeight: '700', color: 'primary.main', mt: 0.5 }}>
+                  {stats?.total_entries || 0}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Logged entries
+                </Typography>
+              </Box>
+              <TrendingUpIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ bgcolor: 'background.paper', borderRadius: 2 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                  Avg Hours/Day
+                </Typography>
+                <Typography sx={{ fontSize: 36, fontWeight: '700', color: 'primary.main', mt: 0.5 }}>
+                  {stats?.avg_hours_per_day || '0.0h'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Over {stats?.days_worked || 0} days
+                </Typography>
+              </Box>
+              <ScheduleIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Time Entries Grouped by Date */}
+      {Object.keys(groupedLogs).length === 0 ? (
+        <Card sx={{ bgcolor: 'background.paper', mb: 3 }}>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary">
+              No time logs found for the selected period.
+            </Typography>
+          </CardContent>
+        </Card>
+      ) : (
+        Object.entries(groupedLogs)
+          .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
+          .map(([date, logs]) => {
+            const dayTotals = getDayTotals(logs);
+            return (
+              <Card key={date} sx={{ bgcolor: 'background.paper', mb: 3 }}>
+                <CardContent sx={{ p: 3 }}>
+                  {/* Date Header */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                        {formatDateLabel(date)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {dayTotals.count} entries
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        Total
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                        {dayTotals.hours}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Time Log Entries */}
+                  {logs.map((log, index) => (
+                    <Box
+                      key={log.log_id}
+                      sx={{
+                        bgcolor: 'background.default',
+                        borderRadius: 2,
+                        p: 2.5,
+                        mb: index < logs.length - 1 ? 2 : 0,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            {log.description || 'Untitled Task'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {log.vehicle || 'No vehicle'} • {log.service || 'No service'}
+                          </Typography>
+                          {log.start_time && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                              {new Date(log.start_time).toLocaleTimeString()} 
+                              {log.end_time && ` - ${new Date(log.end_time).toLocaleTimeString()}`}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 60, textAlign: 'right' }}>
+                            {((log.duration_seconds || 0) / 3600).toFixed(1)}h
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <Chip
+                              label={log.status === 'completed' ? 'Completed' : log.status === 'inprogress' ? 'In Progress' : 'Paused'}
+                              size="small"
+                              sx={{
+                                bgcolor: log.status === 'completed' ? '#2e7d32' : log.status === 'inprogress' ? '#fb8c00' : '#757575',
+                                color: 'white',
+                                fontWeight: 700,
+                              }}
+                            />
+                            <Button
+                              size="small"
+                              variant="text"
+                              sx={{ color: '#FF5722', textTransform: 'none' }}
+                              onClick={() => handleViewLog(log)}
+                            >
+                              View
+                            </Button>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Box>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })
+      )}
+
+      {/* Dialog for viewing a time log in detail */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Time Log Details</DialogTitle>
+        <DialogContent>
+          {selectedLog && (
+            <Box>
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>{selectedLog.description || 'Untitled Task'}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {selectedLog.vehicle || 'No vehicle'} • {selectedLog.service || 'No service'}
+              </Typography>
+              <Typography sx={{ mb: 1 }}>
+                <strong>Duration:</strong> {((selectedLog.duration_seconds || 0) / 3600).toFixed(2)} hours
+              </Typography>
+              <Typography sx={{ mb: 1 }}>
+                <strong>Date:</strong> {formatDateLabel(selectedLog.log_date)}
+              </Typography>
+              <Typography sx={{ mb: 1 }}>
+                <strong>Status:</strong> {selectedLog.status === 'completed' ? 'Completed' : selectedLog.status === 'inprogress' ? 'In Progress' : 'Paused'}
+              </Typography>
+              {selectedLog.start_time && (
+                <Typography sx={{ mb: 1 }}>
+                  <strong>Start Time:</strong> {new Date(selectedLog.start_time).toLocaleString()}
+                </Typography>
+              )}
+              {selectedLog.end_time && (
+                <Typography sx={{ mb: 1 }}>
+                  <strong>End Time:</strong> {new Date(selectedLog.end_time).toLocaleString()}
+                </Typography>
+              )}
+              <Typography sx={{ mb: 1 }}>
+                <strong>Task Type:</strong> {selectedLog.task_type || 'N/A'}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)} sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default TimeLogs;
