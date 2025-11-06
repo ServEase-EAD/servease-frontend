@@ -81,7 +81,8 @@ const CustomerRequests: React.FC = () => {
         console.log("✅ Appointments response:", response.data);
 
         // Convert EnhancedTask to Task format
-        const tasks: Task[] = enhancedTasks.map(task => ({
+        const appointmentResults = response.data.results || [];
+        const tasks: Task[] = appointmentResults.map((task: any) => ({
           id: task.id,
           appointment_type: task.appointment_type,
           scheduled_date: task.scheduled_date,
