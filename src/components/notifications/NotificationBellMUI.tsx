@@ -65,6 +65,8 @@ export function NotificationBellMUI() {
         return "primary";
       case "VEHICLE":
         return "success";
+      case "PROJECT":
+        return "warning";
       case "SYSTEM":
         return "secondary";
       default:

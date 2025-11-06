@@ -5,7 +5,7 @@
 
 import type { Notification } from "../../types/notification";
 import { formatDistanceToNow } from "date-fns";
-import { X, Bell, Calendar, Car, Info } from "lucide-react";
+import { X, Bell, Calendar, Car, FolderOpen, Info } from "lucide-react";
 
 interface NotificationItemProps {
   notification: Notification;
@@ -26,6 +26,8 @@ export function NotificationItem({
         return <Calendar className="w-5 h-5 text-blue-500" />;
       case "VEHICLE":
         return <Car className="w-5 h-5 text-green-500" />;
+      case "PROJECT":
+        return <FolderOpen className="w-5 h-5 text-orange-500" />;
       case "SYSTEM":
         return <Bell className="w-5 h-5 text-purple-500" />;
       default:

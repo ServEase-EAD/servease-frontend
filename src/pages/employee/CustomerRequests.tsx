@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import type { SelectChangeEvent } from '@mui/material';
-import { 
-  getEnhancedAppointments, 
-  updateAppointmentStatus, 
-  handleApiError
-} from '../../services/enhancedDataService';
-import type { VehicleDetails } from '../../services/enhancedDataService';
+import React, { useState, useEffect } from "react";
+import type { SelectChangeEvent } from "@mui/material";
+import apiClient, { handleApiError } from "../../services/apiService";
+import { API_ENDPOINTS } from "../../config/api.config";
 import {
   Box,
   Card,
@@ -30,11 +26,11 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-} from '@mui/material';
-import TaskDetailsDialog from './TaskDetailsDialog';
-import SearchIcon from '@mui/icons-material/Search';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import FilterListIcon from '@mui/icons-material/FilterList';
+} from "@mui/material";
+import TaskDetailsDialog from "./TaskDetailsDialog";
+import SearchIcon from "@mui/icons-material/Search";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 // ----------------- Types -----------------
 interface Task {
@@ -58,30 +54,35 @@ interface Task {
 // ----------------- Component -----------------
 const CustomerRequests: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+  const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   // ----------------- Fetch Data -----------------
   useEffect(() => {
     const fetchAssignedTasks = async () => {
       setLoading(true);
-      setError('');
+      setError("");
 
       try {
-        const enhancedTasks = await getEnhancedAppointments();
-        console.log('✅ Enhanced appointments response:', enhancedTasks);
+        const response = await apiClient.get(API_ENDPOINTS.APPOINTMENTS.LIST);
+        console.log("✅ Appointments response:", response.data);
 
         // Convert EnhancedTask to Task format
-        const tasks: Task[] = enhancedTasks.map(task => ({
+        const appointmentResults = response.data.results || [];
+        const tasks: Task[] = appointmentResults.map((task: any) => ({
           id: task.id,
           appointment_type: task.appointment_type,
           scheduled_date: task.scheduled_date,
@@ -101,13 +102,13 @@ const CustomerRequests: React.FC = () => {
 
         setTasks(tasks);
       } catch (error) {
-        console.error('⚠️ Error fetching assigned tasks:', error);
+        console.error("⚠️ Error fetching assigned tasks:", error);
         const errorMessage = handleApiError(error);
         setError(errorMessage);
         setSnackbar({
           open: true,
           message: errorMessage,
-          severity: 'error'
+          severity: "error",
         });
       } finally {
         setLoading(false);
@@ -121,35 +122,42 @@ const CustomerRequests: React.FC = () => {
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       console.log(`🔄 Updating task ${taskId} status to ${newStatus}`);
-      
-      await updateAppointmentStatus(taskId, newStatus);
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.APPOINTMENTS.DETAIL(taskId),
+        { status: newStatus.toLowerCase() }
+      );
+
+      console.log("✅ Status update response:", response.data);
 
       // Update frontend immediately
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskId ? { ...task, status: newStatus.toLowerCase() } : task
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? { ...task, status: newStatus.toLowerCase() }
+            : task
         )
       );
 
       setSnackbar({
         open: true,
         message: `Status updated to ${formatStatus(newStatus)}`,
-        severity: 'success'
+        severity: "success",
       });
     } catch (error) {
-      console.error('❌ Error updating status:', error);
+      console.error("❌ Error updating status:", error);
       const errorMessage = handleApiError(error);
       setSnackbar({
         open: true,
         message: errorMessage,
-        severity: 'error'
+        severity: "error",
       });
     }
   };
 
   // ----------------- Status Helpers -----------------
   const handleStatusChange = (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     const nextStatus = getNextStatus(task.status);
@@ -161,41 +169,41 @@ const CustomerRequests: React.FC = () => {
   // ✅ Backend-compatible status flow
   const getNextStatus = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
-        return 'confirmed';
-      case 'confirmed':
-        return 'in_progress';
-      case 'in_progress':
-        return 'completed';
+      case "pending":
+        return "confirmed";
+      case "confirmed":
+        return "in_progress";
+      case "in_progress":
+        return "completed";
       default:
-        return '';
+        return "";
     }
   };
 
   const formatStatus = (status: string) => {
     const map: Record<string, string> = {
-      pending: 'Pending Confirmation',
-      confirmed: 'Confirmed',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled',
-      no_show: 'No Show',
+      pending: "Pending Confirmation",
+      confirmed: "Confirmed",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      no_show: "No Show",
     };
     return map[status.toLowerCase()] || status;
   };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'warning';
-      case 'confirmed':
-        return 'info';
-      case 'pending':
-        return 'error';
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "warning";
+      case "confirmed":
+        return "info";
+      case "pending":
+        return "error";
       default:
-        return 'default';
+        return "default";
     }
   };
 
@@ -214,35 +222,67 @@ const CustomerRequests: React.FC = () => {
   const totals = getTotalsByStatus();
 
   const filteredTasks = tasks
-    .filter(task =>
-      Object.values(task).some(value =>
+    .filter((task) =>
+      Object.values(task).some((value) =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       )
     )
-    .filter(task => (statusFilter ? task.status === statusFilter : true));
+    .filter((task) => (statusFilter ? task.status === statusFilter : true));
 
   // ----------------- Render -----------------
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Summary Cards */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
         {[
-          { label: 'Total', value: tasks.length.toString(), color: 'primary.main' },
-          { label: 'Pending', value: (totals['pending'] || 0).toString(), color: 'error.main' },
-          { label: 'Confirmed', value: (totals['confirmed'] || 0).toString(), color: 'info.main' },
-          { label: 'In Progress', value: (totals['in_progress'] || 0).toString(), color: 'warning.main' },
-          { label: 'Completed', value: (totals['completed'] || 0).toString(), color: 'success.main' },
+          {
+            label: "Total",
+            value: tasks.length.toString(),
+            color: "primary.main",
+          },
+          {
+            label: "Pending",
+            value: (totals["pending"] || 0).toString(),
+            color: "error.main",
+          },
+          {
+            label: "Confirmed",
+            value: (totals["confirmed"] || 0).toString(),
+            color: "info.main",
+          },
+          {
+            label: "In Progress",
+            value: (totals["in_progress"] || 0).toString(),
+            color: "warning.main",
+          },
+          {
+            label: "Completed",
+            value: (totals["completed"] || 0).toString(),
+            color: "success.main",
+          },
         ].map((stat, i) => (
-          <Box key={i} sx={{ flex: { xs: '0 0 calc(50% - 12px)', sm: '0 0 calc(25% - 18px)' } }}>
+          <Box
+            key={i}
+            sx={{
+              flex: { xs: "0 0 calc(50% - 12px)", sm: "0 0 calc(25% - 18px)" },
+            }}
+          >
             <Card>
               <CardContent>
                 <Typography
                   variant="h4"
-                  sx={{ color: stat.color, textAlign: 'center', fontWeight: 'bold' }}
+                  sx={{
+                    color: stat.color,
+                    textAlign: "center",
+                    fontWeight: "bold",
+                  }}
                 >
                   {stat.value}
                 </Typography>
-                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ textAlign: "center", color: "text.secondary" }}
+                >
                   {stat.label}
                 </Typography>
               </CardContent>
@@ -252,13 +292,13 @@ const CustomerRequests: React.FC = () => {
       </Box>
 
       {/* Search and Filter */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
         <TextField
           fullWidth
           variant="outlined"
           placeholder="Search tasks..."
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -289,11 +329,18 @@ const CustomerRequests: React.FC = () => {
 
       {/* Loading & Error States */}
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="200px"
+        >
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
       ) : (
         <TableContainer component={Paper}>
           <Table>
@@ -308,21 +355,28 @@ const CustomerRequests: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredTasks.map(task => {
+              {filteredTasks.map((task) => {
                 const nextStatusLabelMap: Record<string, string> = {
-                  pending: 'Confirm',
-                  confirmed: 'Start Work',
-                  in_progress: 'Complete',
+                  pending: "Confirm",
+                  confirmed: "Start Work",
+                  in_progress: "Complete",
                 };
-                const nextButtonLabel = nextStatusLabelMap[task.status.toLowerCase()] || '';
+                const nextButtonLabel =
+                  nextStatusLabelMap[task.status.toLowerCase()] || "";
 
                 return (
                   <TableRow key={task.id}>
                     <TableCell>{task.appointment_type}</TableCell>
                     <TableCell>{task.customer_name}</TableCell>
-                    <TableCell>{task.vehicle_details.display_name || `${task.vehicle_details.year} ${task.vehicle_details.make} ${task.vehicle_details.model}`}</TableCell>
                     <TableCell>
-                      <Typography variant="body2">{task.scheduled_date}</Typography>
+                      {typeof task.vehicle_details === "string"
+                        ? task.vehicle_details
+                        : "Unknown Vehicle"}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {task.scheduled_date}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {task.scheduled_time}
                       </Typography>
@@ -349,7 +403,7 @@ const CustomerRequests: React.FC = () => {
                         </Button>
 
                         {/* ✅ Dynamic Next-Status Button */}
-                        {task.status !== 'completed' && nextButtonLabel && (
+                        {task.status !== "completed" && nextButtonLabel && (
                           <Button
                             variant="contained"
                             size="small"

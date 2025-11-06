@@ -2,7 +2,12 @@
  * Notification Types for ServEase Application
  */
 
-export type NotificationType = "SYSTEM" | "APPOINTMENT" | "VEHICLE" | "OTHER";
+export type NotificationType =
+  | "SYSTEM"
+  | "APPOINTMENT"
+  | "VEHICLE"
+  | "PROJECT"
+  | "OTHER";
 
 export interface Notification {
   id: string;
