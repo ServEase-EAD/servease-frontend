@@ -33,6 +33,16 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
 // ----------------- Types -----------------
+interface VehicleDetails {
+  make?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  plate_number?: string;
+  vin?: string;
+  age?: number;
+}
+
 interface Task {
   id: string;
   appointment_type: string;
@@ -40,7 +50,7 @@ interface Task {
   scheduled_time: string;
   status: string;
   customer_name: string;
-  vehicle_details: VehicleDetails;
+  vehicle_details: VehicleDetails | string;
   customer_details?: any;
   service_description?: string;
   customer_notes?: string;
@@ -202,6 +212,8 @@ const CustomerRequests: React.FC = () => {
       case "confirmed":
       case "not_started":
         return "info";
+      case "no_show":
+        return "secondary";
       case "pending":
         return "error";
       default:
@@ -440,6 +452,7 @@ const CustomerRequests: React.FC = () => {
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
         task={selectedTask}
+        onMarkAsNoShow={(taskId) => updateTaskStatus(taskId, "no_show")}
       />
     </Box>
   );

@@ -220,6 +220,38 @@ const MyTasks: React.FC = () => {
     }
   };
 
+  const updateProjectTaskStatus = async (taskId: string, newStatus: string) => {
+    try {
+      await apiClient.patch(`/api/v1/projects/tasks/${taskId}/`, {
+        status: newStatus.toLowerCase(),
+      });
+
+      setProjectTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.task_id === taskId
+            ? { 
+                ...task, 
+                status: newStatus.toLowerCase() as "not_started" | "in_progress" | "completed" | "blocked"
+              }
+            : task
+        )
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Status updated to ${formatStatus(newStatus)}`,
+        severity: "success",
+      });
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+    }
+  };
+
   // ----------------- Status Helpers -----------------
   const handleStatusChange = (task: UnifiedTask) => {
     if (task.type === "appointment") {
@@ -260,7 +292,7 @@ const MyTasks: React.FC = () => {
 
   const getStatusColor = (
     status: string
-  ): "default" | "error" | "warning" | "info" | "success" => {
+  ): "default" | "error" | "warning" | "info" | "success" | "secondary" => {
     switch (status.toLowerCase()) {
       case "completed":
         return "success";
@@ -269,6 +301,8 @@ const MyTasks: React.FC = () => {
       case "confirmed":
       case "not_started":
         return "info";
+      case "no_show":
+        return "secondary";
       case "pending":
         return "error";
       default:
@@ -562,7 +596,7 @@ const MyTasks: React.FC = () => {
       <Dialog
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
       >
         {selectedTask && (
@@ -577,141 +611,55 @@ const MyTasks: React.FC = () => {
             </DialogTitle>
             <DialogContent>
               <Stack spacing={2} sx={{ mt: 1 }}>
-                {selectedTask.type === "appointment" ? (
+                {/* Task Title */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BuildIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {selectedTask.type === "appointment" ? "Service Type" : "Task Title"}
+                    </Typography>
+                    <Typography>{selectedTask.title}</Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Description */}
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                  <DescriptionIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">Description</Typography>
+                    <Typography>
+                      {selectedTask.type === "appointment"
+                        ? (selectedTask.originalData as AppointmentTask).service_description || 
+                          (selectedTask.originalData as AppointmentTask).customer_notes || 
+                          "No description available"
+                        : (selectedTask.originalData as ProjectTask).description || "No description available"}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Due Date */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CalendarTodayIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {selectedTask.type === "appointment" ? "Scheduled Date & Time" : "Due Date"}
+                    </Typography>
+                    <Typography>
+                      {selectedTask.type === "appointment"
+                        ? `${new Date(selectedTask.dueDate).toLocaleDateString()} at ${selectedTask.dueTime}`
+                        : selectedTask.dueDate === "No due date"
+                        ? "No due date set"
+                        : new Date(selectedTask.dueDate).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Priority (only for project tasks) */}
+                {selectedTask.type === "project" && (
                   <>
-                    {/* Appointment Details */}
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Service Type
-                      </Typography>
-                      <Typography>
-                        {
-                          (selectedTask.originalData as AppointmentTask)
-                            .appointment_type
-                        }
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Customer
-                      </Typography>
-                      <Typography>
-                        {
-                          (selectedTask.originalData as AppointmentTask)
-                            .customer_name
-                        }
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Vehicle
-                      </Typography>
-                      <Typography>{selectedTask.vehicle}</Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Scheduled Date & Time
-                      </Typography>
-                      <Typography>
-                        {new Date(selectedTask.dueDate).toLocaleDateString()} at{" "}
-                        {selectedTask.dueTime}
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    {(selectedTask.originalData as AppointmentTask)
-                      .service_description && (
-                      <>
-                        <Box>
-                          <Typography
-                            variant="subtitle2"
-                            color="text.secondary"
-                          >
-                            Service Description
-                          </Typography>
-                          <Typography>
-                            {
-                              (selectedTask.originalData as AppointmentTask)
-                                .service_description
-                            }
-                          </Typography>
-                        </Box>
-                        <Divider />
-                      </>
-                    )}
-                    {(selectedTask.originalData as AppointmentTask)
-                      .customer_notes && (
-                      <>
-                        <Box>
-                          <Typography
-                            variant="subtitle2"
-                            color="text.secondary"
-                          >
-                            Customer Notes
-                          </Typography>
-                          <Typography>
-                            {
-                              (selectedTask.originalData as AppointmentTask)
-                                .customer_notes
-                            }
-                          </Typography>
-                        </Box>
-                        <Divider />
-                      </>
-                    )}
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Status
-                      </Typography>
-                      <Chip
-                        label={formatStatus(selectedTask.status)}
-                        color={getStatusColor(selectedTask.status)}
-                        size="small"
-                      />
-                    </Box>
-                  </>
-                ) : (
-                  <>
-                    {/* Project Task Details */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <BuildIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Task Title</Typography>
-                        <Typography>{selectedTask.title}</Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
-                    <Box
-                      sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}
-                    >
-                      <DescriptionIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Description</Typography>
-                        <Typography>
-                          {
-                            (selectedTask.originalData as ProjectTask)
-                              .description
-                          }
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CalendarTodayIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Due Date</Typography>
-                        <Typography>
-                          {selectedTask.dueDate === "No due date"
-                            ? "No due date set"
-                            : new Date(
-                                selectedTask.dueDate
-                              ).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
                     <Box>
                       <Typography variant="subtitle2">Priority</Typography>
                       <Typography
@@ -725,40 +673,41 @@ const MyTasks: React.FC = () => {
                         {(selectedTask.originalData as ProjectTask).priority
                           .charAt(0)
                           .toUpperCase() +
-                          (
-                            selectedTask.originalData as ProjectTask
-                          ).priority.slice(1)}
+                          (selectedTask.originalData as ProjectTask).priority.slice(1)}
                       </Typography>
                     </Box>
                     <Divider />
-                    <Box>
-                      <Typography variant="subtitle2">Status</Typography>
-                      <Chip
-                        label={formatStatus(selectedTask.status)}
-                        color={getStatusColor(selectedTask.status)}
-                        size="small"
-                      />
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <AccessTimeIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Created</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(
-                            (
-                              selectedTask.originalData as ProjectTask
-                            ).created_at
-                          ).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Box>
                   </>
                 )}
+
+                {/* Status */}
+                <Box>
+                  <Typography variant="subtitle2">Status</Typography>
+                  <Chip
+                    label={formatStatus(selectedTask.status)}
+                    color={getStatusColor(selectedTask.status)}
+                    size="small"
+                  />
+                </Box>
+                <Divider />
+
+                {/* Created Date */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <AccessTimeIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">Created</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedTask.type === "appointment"
+                        ? new Date((selectedTask.originalData as AppointmentTask).scheduled_date).toLocaleString()
+                        : new Date((selectedTask.originalData as ProjectTask).created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
               </Stack>
             </DialogContent>
             <DialogActions>
               {selectedTask.status !== "completed" &&
+                selectedTask.status !== "no_show" &&
                 getNextButtonLabel(selectedTask.status) && (
                   <Button
                     variant="contained"
@@ -772,7 +721,29 @@ const MyTasks: React.FC = () => {
                     {getNextButtonLabel(selectedTask.status)}
                   </Button>
                 )}
-              <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
+              {(selectedTask.status === "confirmed" || selectedTask.status === "not_started") && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={async () => {
+                      try {
+                        if (selectedTask.type === "appointment") {
+                          await updateAppointmentStatus(selectedTask.id, "no_show");
+                        } else {
+                          await updateProjectTaskStatus(selectedTask.id, "no_show");
+                        }
+                        setDetailsDialogOpen(false);
+                      } catch (error) {
+                        console.error("Error marking as no show:", error);
+                      }
+                    }}
+                  >
+                    Mark as No Show
+                  </Button>
+                )}
+              <Button color="error" onClick={() => setDetailsDialogOpen(false)}>
+                CLOSE
+              </Button>
             </DialogActions>
           </>
         )}
