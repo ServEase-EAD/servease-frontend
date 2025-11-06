@@ -117,7 +117,7 @@ export const API_ENDPOINTS = {
     DETAIL: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
     CREATE: "/api/v1/employees/timelogs/",
     UPDATE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
-    DELETE: (logId: string) => `/api/v1/employees/timelogs/${logId}/`,
+    // DELETE removed - backend explicitly disables DELETE via http_method_names
     
     // Actions on time logs
     START: (logId: string) => `/api/v1/employees/timelogs/${logId}/start/`,
