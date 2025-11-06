@@ -175,7 +175,9 @@ const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
                 <CarIcon sx={{ mr: 1, color: "text.secondary" }} />
                 <Typography variant="body1">
                   <strong>Vehicle:</strong>{" "}
-                  {appointment.vehicle_details || "N/A"}
+                  {typeof appointment.vehicle_details === "string"
+                    ? appointment.vehicle_details || "N/A"
+                    : "N/A"}
                 </Typography>
               </Box>
             </Box>
