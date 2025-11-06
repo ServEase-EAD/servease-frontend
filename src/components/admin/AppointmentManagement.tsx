@@ -39,6 +39,7 @@ import {
   type Appointment,
   type AppointmentStats,
   type User,
+  type VehicleDetails,
 } from "../../services/adminService";
 
 const AppointmentManagement: React.FC = () => {
@@ -90,23 +91,6 @@ const AppointmentManagement: React.FC = () => {
         getAllAppointments(),
         getAllUsers("employee"),
       ]);
-
-      console.log("Loaded appointments data:", allData);
-      console.log("Sample appointment:", allData[0]);
-
-      // Log employee name details for each appointment
-      allData.forEach((apt: Appointment, index: number) => {
-        if (index < 20) {
-          // Only log first 5 to avoid clutter
-          console.log(`Appointment ${index + 1}:`, {
-            id: apt.id,
-            status: apt.status,
-            assigned_employee_id: apt.assigned_employee_id,
-            employee_name: apt.employee_name,
-            assigned_employees: apt.assigned_employees,
-          });
-        }
-      });
 
       const pending = allData.filter(
         (a: Appointment) => a.status === "pending"
@@ -160,22 +144,14 @@ const AppointmentManagement: React.FC = () => {
       return;
     }
 
-    console.log("Approving appointment with data:", {
-      id: selectedAppointment.id,
-      scheduled_date: approveForm.scheduled_date,
-      scheduled_time: approveForm.scheduled_time,
-      assigned_employees: approveForm.assigned_employees,
-    });
-
     try {
       setLoading(true);
-      const result = await approveAppointment(selectedAppointment.id, {
+      await approveAppointment(selectedAppointment.id, {
         scheduled_date: approveForm.scheduled_date,
         scheduled_time: approveForm.scheduled_time,
         assigned_employees: approveForm.assigned_employees,
       });
 
-      console.log("Approval result:", result);
       setSuccess("Appointment approved successfully");
       setApproveDialog(false);
       loadData();
@@ -302,7 +278,6 @@ const AppointmentManagement: React.FC = () => {
             <TableRow>
               <TableCell>Date & Time</TableCell>
               <TableCell>Customer</TableCell>
-              <TableCell>Type</TableCell>
               <TableCell>Vehicle</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Assigned Employee</TableCell>
@@ -312,74 +287,83 @@ const AppointmentManagement: React.FC = () => {
           <TableBody>
             {appointmentList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={6} align="center">
                   No appointments found
                 </TableCell>
               </TableRow>
             ) : (
-              appointmentList.map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell>
-                    {appointment.scheduled_date} at {appointment.scheduled_time}
-                  </TableCell>
-                  <TableCell>{appointment.customer_id}</TableCell>
-                  <TableCell>{appointment.service_type || "N/A"}</TableCell>
-                  <TableCell>{appointment.vehicle_id}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={appointment.status}
-                      color={getStatusColor(appointment.status)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {appointment.assigned_employees &&
-                    appointment.assigned_employees.length > 0
-                      ? appointment.assigned_employees.join(", ")
-                      : appointment.employee_name || "Not assigned"}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {appointment.status === "pending" && (
-                        <>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => handleApproveClick(appointment)}
-                            title="Approve"
-                          >
-                            <CheckCircle />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRejectClick(appointment)}
-                            title="Reject"
-                          >
-                            <Cancel />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleAssignClick(appointment)}
-                            title="Assign Employee"
-                          >
-                            <Assignment />
-                          </IconButton>
-                        </>
-                      )}
-                      <IconButton
+              appointmentList.map((appointment) => {
+                // Helper function to get vehicle display name
+                const getVehicleDisplayName = (vehicleDetails: string | VehicleDetails | undefined): string => {
+                  if (!vehicleDetails) return appointment.vehicle_id;
+                  if (typeof vehicleDetails === 'string') return vehicleDetails;
+                  // If it's an object, use display_name or construct from make/model/year
+                  return vehicleDetails.display_name || `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`;
+                };
+
+                return (
+                  <TableRow key={appointment.id}>
+                    <TableCell>
+                      {appointment.scheduled_date} at {appointment.scheduled_time}
+                    </TableCell>
+                    <TableCell>{appointment.customer_name || appointment.customer_id}</TableCell>
+                    <TableCell>{getVehicleDisplayName(appointment.vehicle_details)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={appointment.status}
+                        color={getStatusColor(appointment.status)}
                         size="small"
-                        color="info"
-                        onClick={() => handleRescheduleClick(appointment)}
-                        title="Reschedule"
-                      >
-                        <Schedule />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {appointment.assigned_employees &&
+                      appointment.assigned_employees.length > 0
+                        ? appointment.assigned_employees.join(", ")
+                        : appointment.employee_name || "Not assigned"}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {appointment.status === "pending" && (
+                          <>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleApproveClick(appointment)}
+                              title="Approve"
+                            >
+                              <CheckCircle />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRejectClick(appointment)}
+                              title="Reject"
+                            >
+                              <Cancel />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleAssignClick(appointment)}
+                              title="Assign Employee"
+                            >
+                              <Assignment />
+                            </IconButton>
+                          </>
+                        )}
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => handleRescheduleClick(appointment)}
+                          title="Reschedule"
+                        >
+                          <Schedule />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
