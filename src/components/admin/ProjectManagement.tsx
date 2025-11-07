@@ -136,14 +136,19 @@ const ProjectManagement: React.FC = () => {
     setLoading(true);
     try {
       // Load projects, employees, customers, and vehicles
-      const [allProjects, pendingProjs, employeesData, customersData, vehiclesData] =
-        await Promise.all([
-          getAllProjects(),
-          getPendingProjects(),
-          getAllUsers("employee"),
-          getAllUsers("customer"),
-          getAllVehicles(),
-        ]);
+      const [
+        allProjects,
+        pendingProjs,
+        employeesData,
+        customersData,
+        vehiclesData,
+      ] = await Promise.all([
+        getAllProjects(),
+        getPendingProjects(),
+        getAllUsers("employee"),
+        getAllUsers("customer"),
+        getAllVehicles(),
+      ]);
 
       console.log(
         `[${new Date().toISOString()}] Loaded projects:`,
@@ -164,7 +169,7 @@ const ProjectManagement: React.FC = () => {
       setEmployees(employeesData);
       setCustomers(customersData);
       setVehicles(vehiclesData);
-      
+
       console.log("Loaded vehicles:", vehiclesData.length);
       console.log("Sample vehicle:", vehiclesData[0]);
       console.log("Sample project vehicle_id:", allProjects[0]?.vehicle_id);
@@ -218,7 +223,9 @@ const ProjectManagement: React.FC = () => {
   };
 
   const getVehicleName = (vehicleId: string): string => {
-    const vehicle = vehicles.find((v) => v.id === vehicleId || v.vehicle_id === vehicleId);
+    const vehicle = vehicles.find(
+      (v) => v.id === vehicleId || v.vehicle_id === vehicleId
+    );
     if (vehicle) {
       const plateNumber = vehicle.plate_number || "No Plate";
       return `${vehicle.make} ${vehicle.model} (${plateNumber})`;
@@ -669,7 +676,7 @@ const ProjectManagement: React.FC = () => {
                     {task.project || task.appointment || "N/A"}
                   </TableCell>
                   <TableCell>
-                    {task.assigned_employee_id 
+                    {task.assigned_employee_id
                       ? getEmployeeName(task.assigned_employee_id)
                       : "Unassigned"}
                   </TableCell>
@@ -1189,7 +1196,7 @@ const ProjectManagement: React.FC = () => {
                         <ListItemText
                           primary={task.title}
                           secondary={`Status: ${task.status} | Assigned: ${
-                            task.assigned_employee_id 
+                            task.assigned_employee_id
                               ? getEmployeeName(task.assigned_employee_id)
                               : "Unassigned"
                           } | Due: ${task.due_date || "No deadline"}`}
@@ -1536,7 +1543,8 @@ const ProjectManagement: React.FC = () => {
                                 />
                                 {task.assigned_employee_id && (
                                   <Typography variant="body2">
-                                    👤 Assigned to: {getEmployeeName(task.assigned_employee_id)}
+                                    👤 Assigned to:{" "}
+                                    {getEmployeeName(task.assigned_employee_id)}
                                   </Typography>
                                 )}
                                 {task.due_date && (

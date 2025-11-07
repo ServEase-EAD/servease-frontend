@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import {
   Box,
   Card,
@@ -7,7 +7,6 @@ import {
   AppBar,
   Toolbar,
   Button,
-  CircularProgress,
   Alert,
   Drawer,
   List,
@@ -37,18 +36,37 @@ import { logout } from "../../services/authService";
 import { getUserFromToken } from "../../services/authService";
 import { NotificationProvider } from "../../contexts/NotificationContext";
 import { NotificationBellMUI } from "../notifications/NotificationBellMUI";
-import AdminDashboard from "../../pages/AdminDashboard";
-import AppointmentManagement from "./AppointmentManagement";
-import ProjectManagement from "./ProjectManagement";
+import LoadingSpinner from "../LoadingSpinner";
+
+// Lazy load heavy components
+const AdminDashboard = lazy(() => import("../../pages/AdminDashboard"));
+const AppointmentManagement = lazy(() => import("./AppointmentManagement"));
+const ProjectManagement = lazy(() => import("./ProjectManagement"));
 
 const DRAWER_WIDTH = 240;
+const STATS_CACHE_KEY = "admin_dashboard_stats";
+const STATS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
 const EnhancedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
-    null
+    () => {
+      // Initialize from cache if available
+      const cached = localStorage.getItem(STATS_CACHE_KEY);
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < STATS_CACHE_DURATION) {
+            return data;
+          }
+        } catch (e) {
+          console.error("Error parsing cached stats:", e);
+        }
+      }
+      return null;
+    }
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +76,24 @@ const EnhancedAdminDashboard: React.FC = () => {
   const userId = user?.id || null;
 
   useEffect(() => {
-    loadDashboardStats();
+    // Only fetch if cache is expired or doesn't exist
+    const cached = localStorage.getItem(STATS_CACHE_KEY);
+    let shouldFetch = true;
+
+    if (cached) {
+      try {
+        const { timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < STATS_CACHE_DURATION) {
+          shouldFetch = false;
+        }
+      } catch (e) {
+        console.error("Error checking cache:", e);
+      }
+    }
+
+    if (shouldFetch) {
+      loadDashboardStats();
+    }
   }, []);
 
   const loadDashboardStats = async () => {
@@ -66,11 +101,32 @@ const EnhancedAdminDashboard: React.FC = () => {
     try {
       const stats = await getDashboardStats();
       setDashboardStats(stats);
+
+      // Cache the stats with timestamp
+      localStorage.setItem(
+        STATS_CACHE_KEY,
+        JSON.stringify({
+          data: stats,
+          timestamp: Date.now(),
+        })
+      );
+
       setError(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load dashboard stats"
       );
+
+      // Try to use cached data on error
+      const cached = localStorage.getItem(STATS_CACHE_KEY);
+      if (cached) {
+        try {
+          const { data } = JSON.parse(cached);
+          setDashboardStats(data);
+        } catch (e) {
+          console.error("Error using cached stats:", e);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -511,18 +567,18 @@ const EnhancedAdminDashboard: React.FC = () => {
           )}
 
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-              <CircularProgress />
-            </Box>
+            <LoadingSpinner message="Loading dashboard stats..." />
           ) : (
-            <>
+            <Suspense
+              fallback={<LoadingSpinner message="Loading section..." />}
+            >
               {activeTab === 0 && renderOverview()}
               {activeTab === 1 && <AdminDashboard />}
               {activeTab === 2 && <AppointmentManagement />}
               {activeTab === 3 && renderProjectManagement()}
               {activeTab === 4 && renderVehicleManagement()}
               {activeTab === 5 && renderEmployeeWorkload()}
-            </>
+            </Suspense>
           )}
         </Box>
       </Box>

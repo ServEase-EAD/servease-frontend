@@ -22,9 +22,12 @@ import apiClient from "../../services/apiService";
 import { API_ENDPOINTS } from "../../config/api.config";
 
 interface DashboardSectionProps {
-  customer: any;
+  customer: Customer | null;
   onNavigate: (tab: string) => void;
   onShowProfileData: () => void;
+  onOpenAppointmentDialog?: () => void;
+  onOpenProjectDialog?: () => void;
+  onOpenVehicleDialog?: () => void;
 }
 
 const DashboardSection: React.FC<DashboardSectionProps> = ({ customer }) => {

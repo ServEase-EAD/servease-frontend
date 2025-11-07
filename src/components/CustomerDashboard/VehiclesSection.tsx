@@ -40,11 +40,19 @@ import {
   type CreateVehicleData,
 } from "../../services/vehicleService";
 
-const VehiclesSection: React.FC = () => {
+interface VehiclesSectionProps {
+  openCreateDialog?: boolean;
+  onDialogClose?: () => void;
+}
+
+const VehiclesSection: React.FC<VehiclesSectionProps> = ({
+  openCreateDialog = false,
+  onDialogClose,
+}) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openCreateDialogState, setOpenCreateDialogState] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -78,6 +86,14 @@ const VehiclesSection: React.FC = () => {
     plate_number: "",
   });
 
+  // Handle opening create dialog from props
+  useEffect(() => {
+    if (openCreateDialog) {
+      setOpenCreateDialogState(true);
+      onDialogClose?.();
+    }
+  }, [openCreateDialog, onDialogClose]);
+
   useEffect(() => {
     fetchVehicles();
   }, []);
@@ -96,13 +112,19 @@ const VehiclesSection: React.FC = () => {
   const validateForm = (): boolean => {
     // Validate make
     if (formData.make.length < 2) {
-      showSnackbar("Vehicle make must be at least 2 characters long", "warning");
+      showSnackbar(
+        "Vehicle make must be at least 2 characters long",
+        "warning"
+      );
       return false;
     }
 
     // Validate model
     if (formData.model.length < 2) {
-      showSnackbar("Vehicle model must be at least 2 characters long", "warning");
+      showSnackbar(
+        "Vehicle model must be at least 2 characters long",
+        "warning"
+      );
       return false;
     }
 
@@ -163,30 +185,32 @@ const VehiclesSection: React.FC = () => {
           make: data[0].make,
           model: data[0].model,
           year: data[0].year,
-          display_name: data[0].display_name
+          display_name: data[0].display_name,
         });
       }
       setVehicles(data);
       setError(null);
     } catch (err) {
       console.error("Error fetching vehicles:", err);
-      
+
       // Handle API errors
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const apiError = err as any;
         if (apiError.response?.data) {
           const errorData = apiError.response.data;
-          const errorMessage = errorData.detail || errorData.message || "Failed to load vehicles";
+          const errorMessage =
+            errorData.detail || errorData.message || "Failed to load vehicles";
           showSnackbar(errorMessage, "error");
         } else {
           showSnackbar("Failed to load vehicles. Please try again.", "error");
         }
       } else {
         // Handle network or other errors
-        const errorMessage = err instanceof Error ? err.message : "Failed to load vehicles";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load vehicles";
         showSnackbar(errorMessage, "error");
       }
-      
+
       setVehicles([]);
     } finally {
       setLoading(false);
@@ -208,38 +232,57 @@ const VehiclesSection: React.FC = () => {
 
       await createVehicle(vehicleData);
       await fetchVehicles();
-      setOpenCreateDialog(false);
+      setOpenCreateDialogState(false);
       resetForm();
       setError(null);
       showSnackbar("Vehicle created successfully!", "success");
     } catch (err) {
       console.error("Error creating vehicle:", err);
-      
+
       // Handle API validation errors
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const apiError = err as any;
         if (apiError.response?.data) {
           const errorData = apiError.response.data;
-          
+
           // Handle field-specific validation errors (check for 'errors' object first)
-          if (errorData.errors && typeof errorData.errors === 'object') {
-            const fieldErrors = Object.entries(errorData.errors).map(([field, messages]) => {
-              const message = Array.isArray(messages) ? messages[0] : messages;
-              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
-              return `${fieldName}: ${message}`;
-            });
-            showSnackbar(fieldErrors.join('. '), "error");
-          } else if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
+          if (errorData.errors && typeof errorData.errors === "object") {
+            const fieldErrors = Object.entries(errorData.errors).map(
+              ([field, messages]) => {
+                const message = Array.isArray(messages)
+                  ? messages[0]
+                  : messages;
+                const fieldName =
+                  field.charAt(0).toUpperCase() +
+                  field.slice(1).replace("_", " ");
+                return `${fieldName}: ${message}`;
+              }
+            );
+            showSnackbar(fieldErrors.join(". "), "error");
+          } else if (
+            typeof errorData === "object" &&
+            !errorData.detail &&
+            !errorData.message
+          ) {
             // Fallback for other field-specific errors
-            const fieldErrors = Object.entries(errorData).map(([field, messages]) => {
-              const message = Array.isArray(messages) ? messages[0] : messages;
-              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
-              return `${fieldName}: ${message}`;
-            });
-            showSnackbar(fieldErrors.join('. '), "error");
+            const fieldErrors = Object.entries(errorData).map(
+              ([field, messages]) => {
+                const message = Array.isArray(messages)
+                  ? messages[0]
+                  : messages;
+                const fieldName =
+                  field.charAt(0).toUpperCase() +
+                  field.slice(1).replace("_", " ");
+                return `${fieldName}: ${message}`;
+              }
+            );
+            showSnackbar(fieldErrors.join(". "), "error");
           } else {
             // Handle general API errors
-            const errorMessage = errorData.detail || errorData.message || "Failed to create vehicle";
+            const errorMessage =
+              errorData.detail ||
+              errorData.message ||
+              "Failed to create vehicle";
             showSnackbar(errorMessage, "error");
           }
         } else {
@@ -247,7 +290,8 @@ const VehiclesSection: React.FC = () => {
         }
       } else {
         // Handle network or other errors
-        const errorMessage = err instanceof Error ? err.message : "Failed to create vehicle";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to create vehicle";
         showSnackbar(errorMessage, "error");
       }
     }
@@ -280,32 +324,51 @@ const VehiclesSection: React.FC = () => {
       showSnackbar("Vehicle updated successfully!", "success");
     } catch (err) {
       console.error("Error updating vehicle:", err);
-      
+
       // Handle API validation errors
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const apiError = err as any;
         if (apiError.response?.data) {
           const errorData = apiError.response.data;
-          
+
           // Handle field-specific validation errors (check for 'errors' object first)
-          if (errorData.errors && typeof errorData.errors === 'object') {
-            const fieldErrors = Object.entries(errorData.errors).map(([field, messages]) => {
-              const message = Array.isArray(messages) ? messages[0] : messages;
-              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
-              return `${fieldName}: ${message}`;
-            });
-            showSnackbar(fieldErrors.join('. '), "error");
-          } else if (typeof errorData === 'object' && !errorData.detail && !errorData.message) {
+          if (errorData.errors && typeof errorData.errors === "object") {
+            const fieldErrors = Object.entries(errorData.errors).map(
+              ([field, messages]) => {
+                const message = Array.isArray(messages)
+                  ? messages[0]
+                  : messages;
+                const fieldName =
+                  field.charAt(0).toUpperCase() +
+                  field.slice(1).replace("_", " ");
+                return `${fieldName}: ${message}`;
+              }
+            );
+            showSnackbar(fieldErrors.join(". "), "error");
+          } else if (
+            typeof errorData === "object" &&
+            !errorData.detail &&
+            !errorData.message
+          ) {
             // Fallback for other field-specific errors
-            const fieldErrors = Object.entries(errorData).map(([field, messages]) => {
-              const message = Array.isArray(messages) ? messages[0] : messages;
-              const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
-              return `${fieldName}: ${message}`;
-            });
-            showSnackbar(fieldErrors.join('. '), "error");
+            const fieldErrors = Object.entries(errorData).map(
+              ([field, messages]) => {
+                const message = Array.isArray(messages)
+                  ? messages[0]
+                  : messages;
+                const fieldName =
+                  field.charAt(0).toUpperCase() +
+                  field.slice(1).replace("_", " ");
+                return `${fieldName}: ${message}`;
+              }
+            );
+            showSnackbar(fieldErrors.join(". "), "error");
           } else {
             // Handle general API errors
-            const errorMessage = errorData.detail || errorData.message || "Failed to update vehicle";
+            const errorMessage =
+              errorData.detail ||
+              errorData.message ||
+              "Failed to update vehicle";
             showSnackbar(errorMessage, "error");
           }
         } else {
@@ -313,7 +376,8 @@ const VehiclesSection: React.FC = () => {
         }
       } else {
         // Handle network or other errors
-        const errorMessage = err instanceof Error ? err.message : "Failed to update vehicle";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to update vehicle";
         showSnackbar(errorMessage, "error");
       }
     }
@@ -334,23 +398,25 @@ const VehiclesSection: React.FC = () => {
       showSnackbar("Vehicle deleted successfully!", "success");
     } catch (err) {
       console.error("Error deleting vehicle:", err);
-      
+
       // Handle API validation errors
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const apiError = err as any;
         if (apiError.response?.data) {
           const errorData = apiError.response.data;
-          const errorMessage = errorData.detail || errorData.message || "Failed to delete vehicle";
+          const errorMessage =
+            errorData.detail || errorData.message || "Failed to delete vehicle";
           showSnackbar(errorMessage, "error");
         } else {
           showSnackbar("Failed to delete vehicle. Please try again.", "error");
         }
       } else {
         // Handle network or other errors
-        const errorMessage = err instanceof Error ? err.message : "Failed to delete vehicle";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to delete vehicle";
         showSnackbar(errorMessage, "error");
       }
-      
+
       setDeleteConfirmation({ open: false, vehicleId: null });
     }
   };
@@ -368,7 +434,7 @@ const VehiclesSection: React.FC = () => {
 
   const openCreateForm = () => {
     resetForm();
-    setOpenCreateDialog(true);
+    setOpenCreateDialogState(true);
   };
 
   const openEditForm = (vehicle: Vehicle) => {
@@ -585,18 +651,18 @@ const VehiclesSection: React.FC = () => {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <ColorIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2" color="text.secondary">
-                      Color: {vehicle.color || 'N/A'}
+                      Color: {vehicle.color || "N/A"}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <YearIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                    <Typography 
-                      variant="body2" 
+                    <Typography
+                      variant="body2"
                       color="text.secondary"
                       onClick={() => console.log("Vehicle data:", vehicle)}
-                      sx={{ cursor: 'pointer' }}
+                      sx={{ cursor: "pointer" }}
                     >
-                      Year: {vehicle.year || 'N/A'} {/* Debug: click to log */}
+                      Year: {vehicle.year || "N/A"} {/* Debug: click to log */}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -687,9 +753,7 @@ const VehiclesSection: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteConfirmation.open}
-        onClose={() =>
-          setDeleteConfirmation({ open: false, vehicleId: null })
-        }
+        onClose={() => setDeleteConfirmation({ open: false, vehicleId: null })}
         maxWidth="sm"
       >
         <DialogTitle sx={{ pb: 1 }}>
@@ -704,7 +768,8 @@ const VehiclesSection: React.FC = () => {
             undone.
           </Typography>
           <Alert severity="warning" sx={{ mt: 2 }}>
-            Note: Vehicles with existing modification requests cannot be deleted.
+            Note: Vehicles with existing modification requests cannot be
+            deleted.
           </Alert>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
@@ -730,8 +795,8 @@ const VehiclesSection: React.FC = () => {
 
       {/* Create Vehicle Dialog */}
       <Dialog
-        open={openCreateDialog}
-        onClose={() => setOpenCreateDialog(false)}
+        open={openCreateDialogState}
+        onClose={() => setOpenCreateDialogState(false)}
         maxWidth="sm"
         fullWidth
         PaperProps={{
@@ -753,7 +818,7 @@ const VehiclesSection: React.FC = () => {
               Add New Vehicle
             </Typography>
             <IconButton
-              onClick={() => setOpenCreateDialog(false)}
+              onClick={() => setOpenCreateDialogState(false)}
               size="small"
               sx={{ color: "#999" }}
             >
@@ -923,7 +988,7 @@ const VehiclesSection: React.FC = () => {
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
           <Button
-            onClick={() => setOpenCreateDialog(false)}
+            onClick={() => setOpenCreateDialogState(false)}
             variant="outlined"
             sx={{
               borderColor: "#ddd",
@@ -1291,7 +1356,9 @@ const VehiclesSection: React.FC = () => {
                   >
                     Make
                   </Typography>
-                  <Typography variant="body1">{selectedVehicle.make}</Typography>
+                  <Typography variant="body1">
+                    {selectedVehicle.make}
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography
@@ -1313,7 +1380,9 @@ const VehiclesSection: React.FC = () => {
                   >
                     Year
                   </Typography>
-                  <Typography variant="body1">{selectedVehicle.year}</Typography>
+                  <Typography variant="body1">
+                    {selectedVehicle.year}
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography

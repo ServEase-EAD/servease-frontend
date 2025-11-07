@@ -28,7 +28,13 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { CheckCircle, Cancel, Assignment, Schedule } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Cancel,
+  Assignment,
+  Schedule,
+  FilterList,
+} from "@mui/icons-material";
 import {
   getAllAppointments,
   approveAppointment,
@@ -60,6 +66,19 @@ const AppointmentManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Filter states
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    // Default to 30 days ago
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState<string>(() => {
+    // Default to today
+    return new Date().toISOString().split("T")[0];
+  });
+  const [statusFilter, setStatusFilter] = useState<string>("");
+
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
   const [assignDialog, setAssignDialog] = useState(false);
@@ -82,15 +101,43 @@ const AppointmentManagement: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      const [allData, employeesData] = await Promise.all([
-        getAllAppointments(),
+      // Build filter params
+      const params: Record<string, string> = {};
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (statusFilter) params.status = statusFilter;
+
+      // Load data in parallel with proper error handling
+      const [allDataResult, employeesDataResult] = await Promise.allSettled([
+        getAllAppointments(params),
         getAllUsers("employee"),
       ]);
+
+      // Handle appointments data
+      let allData: Appointment[] = [];
+      if (allDataResult.status === "fulfilled") {
+        allData = allDataResult.value;
+      } else {
+        console.error("Failed to load appointments:", allDataResult.reason);
+        throw new Error("Failed to load appointments");
+      }
+
+      // Handle employees data
+      let employeesData: User[] = [];
+      if (employeesDataResult.status === "fulfilled") {
+        employeesData = employeesDataResult.value;
+      } else {
+        console.error("Failed to load employees:", employeesDataResult.reason);
+        // Continue even if employees fail to load
+      }
 
       const pending = allData.filter(
         (a: Appointment) => a.status === "pending"
@@ -114,9 +161,11 @@ const AppointmentManagement: React.FC = () => {
         ).length,
       };
       setStatistics(stats);
-      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load data";
+      setError(errorMessage);
+      console.error("Load data error:", err);
     } finally {
       setLoading(false);
     }
@@ -294,20 +343,30 @@ const AppointmentManagement: React.FC = () => {
             ) : (
               appointmentList.map((appointment) => {
                 // Helper function to get vehicle display name
-                const getVehicleDisplayName = (vehicleDetails: string | VehicleDetails | undefined): string => {
+                const getVehicleDisplayName = (
+                  vehicleDetails: string | VehicleDetails | undefined
+                ): string => {
                   if (!vehicleDetails) return appointment.vehicle_id;
-                  if (typeof vehicleDetails === 'string') return vehicleDetails;
+                  if (typeof vehicleDetails === "string") return vehicleDetails;
                   // If it's an object, use display_name or construct from make/model/year
-                  return vehicleDetails.display_name || `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`;
+                  return (
+                    vehicleDetails.display_name ||
+                    `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`
+                  );
                 };
 
                 return (
                   <TableRow key={appointment.id}>
                     <TableCell>
-                      {appointment.scheduled_date} at {appointment.scheduled_time}
+                      {appointment.scheduled_date} at{" "}
+                      {appointment.scheduled_time}
                     </TableCell>
-                    <TableCell>{appointment.customer_name || appointment.customer_id}</TableCell>
-                    <TableCell>{getVehicleDisplayName(appointment.vehicle_details)}</TableCell>
+                    <TableCell>
+                      {appointment.customer_name || appointment.customer_id}
+                    </TableCell>
+                    <TableCell>
+                      {getVehicleDisplayName(appointment.vehicle_details)}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={appointment.status}
@@ -380,6 +439,9 @@ const AppointmentManagement: React.FC = () => {
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
+          <Button size="small" onClick={loadData} sx={{ ml: 2 }}>
+            Retry
+          </Button>
         </Alert>
       )}
       {success && (
@@ -456,6 +518,67 @@ const AppointmentManagement: React.FC = () => {
         </Card>
       </Box>
 
+      {/* Filters Section */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <FilterList sx={{ mr: 1 }} />
+            <Typography variant="h6">Filters</Typography>
+            <Button
+              size="small"
+              onClick={() => {
+                setDateFrom(
+                  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split("T")[0]
+                );
+                setDateTo(new Date().toISOString().split("T")[0]);
+                setStatusFilter("");
+              }}
+              sx={{ ml: "auto" }}
+            >
+              Reset
+            </Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <TextField
+              label="From Date"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              label="To Date"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                label="Status"
+              >
+                <MenuItem value="">All</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="confirmed">Confirmed</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+              </Select>
+            </FormControl>
+            <Button variant="contained" onClick={loadData} disabled={loading}>
+              Apply Filters
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
       <Card>
         <Tabs
           value={activeTab}
@@ -468,8 +591,19 @@ const AppointmentManagement: React.FC = () => {
 
         <CardContent>
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                p: 3,
+              }}
+            >
               <CircularProgress />
+              <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
+                Loading appointments... This may take a moment for large
+                datasets.
+              </Typography>
             </Box>
           ) : (
             <>
