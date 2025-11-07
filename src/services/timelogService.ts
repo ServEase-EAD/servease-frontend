@@ -146,6 +146,15 @@ export const timelogService = {
     // Backend returns { message: string, data: TimeLog }
     return response.data.data || response.data;
   },
+
+  /**
+   * Fix duration for completed logs that have 0 duration
+   * This recalculates duration from start_time to end_time for all affected logs
+   */
+  fixDurations: async (): Promise<{ message: string; fixed_count: number }> => {
+    const response = await apiClient.post(API_ENDPOINTS.TIMELOGS.FIX_DURATIONS);
+    return response.data;
+  },
 };
 
 /**
