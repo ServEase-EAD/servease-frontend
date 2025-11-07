@@ -135,9 +135,10 @@ const TimeLogs: React.FC = () => {
       setStats(statsData);
       
       // Find active time log (in progress or paused)
-      const activeLog = logsArray.find(
-        (log: TimeLog) => log.status === 'inprogress' || log.status === 'paused'
-      );
+      // Priority: in progress > paused
+      const inProgressLog = logsArray.find((log: TimeLog) => log.status === 'inprogress');
+      const pausedLog = logsArray.find((log: TimeLog) => log.status === 'paused');
+      const activeLog = inProgressLog || pausedLog;
       
       console.log('Active log found:', activeLog);
       if (activeLog) {
@@ -168,10 +169,17 @@ const TimeLogs: React.FC = () => {
   };
 
   const formatTime = (seconds: number): string => {
-    const hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const mm = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const ss = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${hh}:${mm}:${ss}`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remainingSeconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${remainingSeconds}s`;
+    }
   };
 
   // Group time logs by date
@@ -184,12 +192,20 @@ const TimeLogs: React.FC = () => {
       return grouped;
     }
     
-    // Filter by search query
-    const filteredLogs = timeLogs.filter(log =>
-      log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.vehicle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.service?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter by search query and exclude in-progress/paused logs (they show in active task card)
+    const filteredLogs = timeLogs.filter(log => {
+      // Exclude in-progress and paused logs from historical view
+      if (log.status === 'inprogress' || log.status === 'paused') {
+        return false;
+      }
+      
+      // Apply search filter
+      return (
+        log.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.vehicle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.service?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
     
     // Group by date
     filteredLogs.forEach(log => {
@@ -377,52 +393,85 @@ const TimeLogs: React.FC = () => {
 
       {/* Current Active Task Card */}
       {activeTimeLog && (
-        <Card sx={{ borderRadius: 2, mb: 3, bgcolor: '#e3f2fd' }}>
-          <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography sx={{ fontWeight: 700, mb: 1 }}>Current Task</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600 }}>{activeTimeLog.description || 'Untitled Task'}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {activeTimeLog.vehicle || 'No vehicle'} • {activeTimeLog.service || 'No service'}
-              </Typography>
+        <Card sx={{ borderRadius: 2, mb: 3, bgcolor: '#e3f2fd', border: '2px solid #2196f3' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Box>
+                <Typography sx={{ fontWeight: 700, mb: 0.5, color: 'primary.main' }}>
+                  {activeTimeLog.status === 'inprogress' ? '🔥 Active Task' : '⏸️ Paused Task'}
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  {activeTimeLog.description || 'Untitled Task'}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    🚗 {activeTimeLog.vehicle || 'No vehicle'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    🔧 {activeTimeLog.service || 'No service'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    📋 {activeTimeLog.task_type === 'appointment' ? 'Appointment' : 'Project Task'}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                <Typography sx={{ fontSize: 40, fontWeight: 700, color: 'primary.main', fontFamily: 'monospace' }}>
+                  {formatTime(currentSeconds)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Total Time Tracked
+                </Typography>
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-              <Typography sx={{ fontSize: 32, fontWeight: 700, color: 'primary.main' }}>
-                {formatTime(currentSeconds)}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                {activeTimeLog.status === 'inprogress' ? (
-                  <>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      sx={{ textTransform: 'none' }}
-                      onClick={() => handleStatusChange(activeTimeLog.log_id, 'paused')}
-                    >
-                      Pause
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      sx={{ textTransform: 'none' }}
-                      onClick={() => handleStatusChange(activeTimeLog.log_id, 'completed')}
-                    >
-                      Complete
-                    </Button>
-                  </>
-                ) : (
+            
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', pt: 1, borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+              {activeTimeLog.status === 'inprogress' ? (
+                <>
+                  <Button
+                    variant="outlined"
+                    size="medium"
+                    startIcon={<span>⏸️</span>}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    onClick={() => handleStatusChange(activeTimeLog.log_id, 'paused')}
+                  >
+                    Pause
+                  </Button>
                   <Button
                     variant="contained"
                     color="success"
-                    size="small"
-                    sx={{ textTransform: 'none' }}
+                    size="medium"
+                    startIcon={<span>✓</span>}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    onClick={() => handleStatusChange(activeTimeLog.log_id, 'completed')}
+                  >
+                    Complete Task
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="medium"
+                    startIcon={<span>▶️</span>}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
                     onClick={() => handleStatusChange(activeTimeLog.log_id, 'inprogress')}
                   >
                     Resume
                   </Button>
-                )}
-              </Box>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    size="medium"
+                    startIcon={<span>✓</span>}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    onClick={() => handleStatusChange(activeTimeLog.log_id, 'completed')}
+                  >
+                    Complete Task
+                  </Button>
+                </>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -488,12 +537,24 @@ const TimeLogs: React.FC = () => {
         </Card>
       </Box>
 
+      {/* Section Header for Completed Tasks */}
+      <Box sx={{ mb: 2, mt: 4 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          📜 Completed Time Logs
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Historical record of finished tasks
+        </Typography>
+      </Box>
+
       {/* Time Entries Grouped by Date */}
       {Object.keys(groupedLogs).length === 0 ? (
         <Card sx={{ bgcolor: 'background.paper', mb: 3 }}>
           <CardContent sx={{ p: 3, textAlign: 'center' }}>
             <Typography variant="body1" color="text.secondary">
-              No time logs found for the selected period.
+              {activeTimeLog 
+                ? "No completed time logs yet. Complete your active task to see it here."
+                : "No time logs found for the selected period."}
             </Typography>
           </CardContent>
         </Card>
