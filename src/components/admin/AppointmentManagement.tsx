@@ -28,7 +28,13 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { CheckCircle, Cancel, Assignment, Schedule, FilterList } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Cancel,
+  Assignment,
+  Schedule,
+  FilterList,
+} from "@mui/icons-material";
 import {
   getAllAppointments,
   approveAppointment,
@@ -65,11 +71,11 @@ const AppointmentManagement: React.FC = () => {
     // Default to 30 days ago
     const date = new Date();
     date.setDate(date.getDate() - 30);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   });
   const [dateTo, setDateTo] = useState<string>(() => {
     // Default to today
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   });
   const [statusFilter, setStatusFilter] = useState<string>("");
 
@@ -101,7 +107,7 @@ const AppointmentManagement: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Build filter params
       const params: Record<string, string> = {};
@@ -117,7 +123,7 @@ const AppointmentManagement: React.FC = () => {
 
       // Handle appointments data
       let allData: Appointment[] = [];
-      if (allDataResult.status === 'fulfilled') {
+      if (allDataResult.status === "fulfilled") {
         allData = allDataResult.value;
       } else {
         console.error("Failed to load appointments:", allDataResult.reason);
@@ -126,7 +132,7 @@ const AppointmentManagement: React.FC = () => {
 
       // Handle employees data
       let employeesData: User[] = [];
-      if (employeesDataResult.status === 'fulfilled') {
+      if (employeesDataResult.status === "fulfilled") {
         employeesData = employeesDataResult.value;
       } else {
         console.error("Failed to load employees:", employeesDataResult.reason);
@@ -156,7 +162,8 @@ const AppointmentManagement: React.FC = () => {
       };
       setStatistics(stats);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to load data";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load data";
       setError(errorMessage);
       console.error("Load data error:", err);
     } finally {
@@ -432,11 +439,7 @@ const AppointmentManagement: React.FC = () => {
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
-          <Button
-            size="small"
-            onClick={loadData}
-            sx={{ ml: 2 }}
-          >
+          <Button size="small" onClick={loadData} sx={{ ml: 2 }}>
             Retry
           </Button>
         </Alert>
@@ -524,8 +527,12 @@ const AppointmentManagement: React.FC = () => {
             <Button
               size="small"
               onClick={() => {
-                setDateFrom(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-                setDateTo(new Date().toISOString().split('T')[0]);
+                setDateFrom(
+                  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split("T")[0]
+                );
+                setDateTo(new Date().toISOString().split("T")[0]);
                 setStatusFilter("");
               }}
               sx={{ ml: "auto" }}
@@ -565,11 +572,7 @@ const AppointmentManagement: React.FC = () => {
                 <MenuItem value="cancelled">Cancelled</MenuItem>
               </Select>
             </FormControl>
-            <Button
-              variant="contained"
-              onClick={loadData}
-              disabled={loading}
-            >
+            <Button variant="contained" onClick={loadData} disabled={loading}>
               Apply Filters
             </Button>
           </Box>
@@ -588,10 +591,18 @@ const AppointmentManagement: React.FC = () => {
 
         <CardContent>
           {loading ? (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                p: 3,
+              }}
+            >
               <CircularProgress />
               <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
-                Loading appointments... This may take a moment for large datasets.
+                Loading appointments... This may take a moment for large
+                datasets.
               </Typography>
             </Box>
           ) : (
