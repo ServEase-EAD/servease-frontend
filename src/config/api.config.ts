@@ -136,6 +136,7 @@ export const API_ENDPOINTS = {
     EMPLOYEE_LOGS: "/api/v1/employees/timelogs/logs/",
     STATS: "/api/v1/employees/timelogs/stats/",
     DAILY_TOTALS: "/api/v1/employees/timelogs/daily-totals/",
+    FIX_DURATIONS: "/api/v1/employees/timelogs/fix-durations/",
   },
 
   // Vehicle endpoints

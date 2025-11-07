@@ -40,6 +40,7 @@ const TimeLogs: React.FC = () => {
   // Data states
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [stats, setStats] = useState<TimeLogStats | null>(null);
+  const [todayStats, setTodayStats] = useState<TimeLogStats | null>(null);
   const [activeTimeLog, setActiveTimeLog] = useState<TimeLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,19 +121,22 @@ const TimeLogs: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch all time logs and stats
-      const [logsData, statsData] = await Promise.all([
+      // Fetch all time logs, stats for selected filter, and today's stats
+      const [logsData, statsData, todayStatsData] = await Promise.all([
         timelogService.getAllTimeLogs(),
         timelogService.getTimeLogStats(timeFilter),
+        timelogService.getTimeLogStats('today'), // Always fetch today's stats separately
       ]);
       
       console.log('Fetched logs:', logsData);
       console.log('Fetched stats:', statsData);
+      console.log('Fetched today stats:', todayStatsData);
       
       // Ensure logsData is an array
       const logsArray = Array.isArray(logsData) ? logsData : [];
       setTimeLogs(logsArray);
       setStats(statsData);
+      setTodayStats(todayStatsData);
       
       // Find active time log (in progress or paused)
       // Priority: in progress > paused
@@ -162,6 +166,7 @@ const TimeLogs: React.FC = () => {
       setError(errorMessage);
       setTimeLogs([]);
       setStats(null);
+      setTodayStats(null);
       setActiveTimeLog(null);
     } finally {
       setLoading(false);
@@ -224,10 +229,12 @@ const TimeLogs: React.FC = () => {
   // Calculate totals for each day
   const getDayTotals = (logs: TimeLog[]) => {
     const totalSeconds = logs.reduce((sum, log) => sum + (log.duration_seconds || 0), 0);
-    const totalHours = (totalSeconds / 3600).toFixed(1);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     return {
       count: logs.length,
-      hours: `${totalHours}h`,
+      hours: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
     };
   };
 
@@ -308,6 +315,29 @@ const TimeLogs: React.FC = () => {
     }
   };
 
+  const handleFixDurations = async () => {
+    try {
+      setError(null);
+      const result = await timelogService.fixDurations();
+      
+      if (result.fixed_count > 0) {
+        setError(null);
+        // Show success message temporarily using error state (we can use success alert)
+        await fetchTimeLogsData(); // Refresh data
+        alert(`✅ Successfully fixed ${result.fixed_count} time log(s)!`);
+      } else {
+        alert('ℹ️ No time logs needed fixing. All durations are correct!');
+      }
+    } catch (err: any) {
+      console.error('Error fixing durations:', err);
+      const errorMessage = err.response?.data?.error 
+        || err.response?.data?.message 
+        || err.message 
+        || 'Failed to fix durations';
+      setError(errorMessage);
+    }
+  };
+
   const formatFilterLabel = (filter: TimeFilterOption): string => {
     const labels: Record<TimeFilterOption, string> = {
       'all_time': 'All Time',
@@ -365,6 +395,20 @@ const TimeLogs: React.FC = () => {
             }}
           />
         </Box>
+
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={handleFixDurations}
+          sx={{ 
+            textTransform: 'none',
+            minWidth: 'auto',
+            whiteSpace: 'nowrap',
+            display: { xs: 'none', sm: 'inline-flex' }
+          }}
+        >
+          🔧 Fix Times
+        </Button>
 
         <Box>
           <IconButton
@@ -478,7 +522,7 @@ const TimeLogs: React.FC = () => {
       )}
 
       {/* Summary Statistics */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 4 }}>
         <Card sx={{ bgcolor: 'background.paper', borderRadius: 2 }}>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -535,6 +579,25 @@ const TimeLogs: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+
+        <Card sx={{ bgcolor: 'background.paper', borderRadius: 2, border: '2px solid #4caf50' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                  Today's Hours
+                </Typography>
+                <Typography sx={{ fontSize: 36, fontWeight: '700', color: 'success.main', mt: 0.5 }}>
+                  {todayStats?.total_hours || '0.0h'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Typography>
+              </Box>
+              <ClockIcon sx={{ fontSize: 40, color: 'success.main' }} />
+            </Box>
+          </CardContent>
+        </Card>
       </Box>
 
       {/* Section Header for Completed Tasks */}
@@ -587,7 +650,21 @@ const TimeLogs: React.FC = () => {
                   </Box>
 
                   {/* Time Log Entries */}
-                  {logs.map((log, index) => (
+                  {logs.map((log, index) => {
+                    // Debug log
+                    if (log.duration_seconds === 0 || !log.duration_seconds) {
+                      console.log('⚠️ Log with 0 duration:', {
+                        log_id: log.log_id,
+                        description: log.description,
+                        duration_seconds: log.duration_seconds,
+                        duration: log.duration,
+                        status: log.status,
+                        start_time: log.start_time,
+                        end_time: log.end_time,
+                      });
+                    }
+                    
+                    return (
                     <Box
                       key={log.log_id}
                       sx={{
@@ -616,8 +693,14 @@ const TimeLogs: React.FC = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 60, textAlign: 'right' }}>
-                            {((log.duration_seconds || 0) / 3600).toFixed(1)}h
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 80, textAlign: 'right', fontFamily: 'monospace' }}>
+                            {(() => {
+                              const totalSeconds = log.duration_seconds || 0;
+                              const hours = Math.floor(totalSeconds / 3600);
+                              const minutes = Math.floor((totalSeconds % 3600) / 60);
+                              const seconds = totalSeconds % 60;
+                              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            })()}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                             <Chip
@@ -641,7 +724,8 @@ const TimeLogs: React.FC = () => {
                         </Box>
                       </Box>
                     </Box>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             );
@@ -658,8 +742,14 @@ const TimeLogs: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {selectedLog.vehicle || 'No vehicle'} • {selectedLog.service || 'No service'}
               </Typography>
-              <Typography sx={{ mb: 1 }}>
-                <strong>Duration:</strong> {((selectedLog.duration_seconds || 0) / 3600).toFixed(2)} hours
+              <Typography sx={{ mb: 1, fontFamily: 'monospace' }}>
+                <strong>Duration:</strong> {(() => {
+                  const totalSeconds = selectedLog.duration_seconds || 0;
+                  const hours = Math.floor(totalSeconds / 3600);
+                  const minutes = Math.floor((totalSeconds % 3600) / 60);
+                  const seconds = totalSeconds % 60;
+                  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                })()}
               </Typography>
               <Typography sx={{ mb: 1 }}>
                 <strong>Date:</strong> {formatDateLabel(selectedLog.log_date)}

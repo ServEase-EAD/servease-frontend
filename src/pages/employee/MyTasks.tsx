@@ -540,18 +540,45 @@ const MyTasks: React.FC = () => {
   };
 
   // ----------------- Calculate Stats -----------------
+  // Filter out tasks that have completed time logs (they shouldn't count as in_progress)
+  const tasksToCount = unifiedTasks.filter((task) => {
+    const taskKey = getTaskKey(task);
+    const log = activeTimeLogs.get(taskKey);
+    // If there's a completed time log, the task should be counted as completed regardless of its status
+    if (log && log.status === 'completed') {
+      return false; // Don't count this task in its original status
+    }
+    return true;
+  });
+
   const totalStats = {
     total: unifiedTasks.length,
-    pending: unifiedTasks.filter((t) =>
+    pending: tasksToCount.filter((t) =>
       ["pending", "not_started"].includes(t.status.toLowerCase())
     ).length,
-    in_progress: unifiedTasks.filter(
+    in_progress: tasksToCount.filter(
       (t) => t.status.toLowerCase() === "in_progress"
     ).length,
     completed: unifiedTasks.filter(
-      (t) => t.status.toLowerCase() === "completed"
+      (t) => {
+        const taskKey = getTaskKey(t);
+        const log = activeTimeLogs.get(taskKey);
+        // Count as completed if status is completed OR if there's a completed time log
+        return t.status.toLowerCase() === "completed" || (log && log.status === 'completed');
+      }
     ).length,
   };
+
+  // Debug: Log tasks with in_progress status
+  useEffect(() => {
+    const inProgressTasks = unifiedTasks.filter(
+      (t) => t.status.toLowerCase() === "in_progress"
+    );
+    if (inProgressTasks.length > 0) {
+      console.log("Tasks with 'in_progress' status:", inProgressTasks);
+      console.log("Active time logs:", Array.from(activeTimeLogs.entries()));
+    }
+  }, [unifiedTasks, activeTimeLogs]);
 
   // Helper function to parse due date and time for sorting
   const parseDueDateTime = (task: UnifiedTask): number => {
