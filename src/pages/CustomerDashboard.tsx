@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import {
   Box,
   Container,
@@ -11,14 +11,10 @@ import {
   DialogActions,
   IconButton,
   Typography,
-  Card,
-  CardContent,
 } from "@mui/material";
 import {
   Person,
   ExitToApp,
-  Add,
-  Warning,
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Event as EventIcon,
@@ -46,7 +42,16 @@ const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showProfileData, setShowProfileData] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => {
+    // Check if this is a new signup
+    const isNewSignup = localStorage.getItem("isNewSignup");
+    if (isNewSignup === "true") {
+      // Clear the flag immediately
+      localStorage.removeItem("isNewSignup");
+      return "profile";
+    }
+    return "dashboard";
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
@@ -66,6 +71,13 @@ const CustomerDashboard: React.FC = () => {
     updateProfile,
     retryConnection,
   } = useCustomer();
+
+  // Automatically navigate to profile section if user has no profile and not already on profile tab
+  useEffect(() => {
+    if (!profileCheckLoading && !hasProfile && !error && activeTab !== "profile") {
+      setActiveTab("profile");
+    }
+  }, [profileCheckLoading, hasProfile, error, activeTab]);
 
   if (!isAuthenticated) {
     return (
@@ -356,58 +368,21 @@ const CustomerDashboard: React.FC = () => {
               </Alert>
             )}
 
-            {!profileCheckLoading && !hasProfile && !error && (
-              <>
-                <Alert severity="info" sx={{ mb: 3 }}>
-                  <Typography
-                    variant="subtitle2"
-                    gutterBottom
-                    fontWeight="bold"
-                  >
-                    Profile Setup Required
-                  </Typography>
-                  <Typography variant="body2">
-                    Some sections are currently locked. Complete your profile to
-                    unlock all features including Service appointments and
-                    Projects.
-                  </Typography>
-                </Alert>
-                <Card elevation={3} sx={{ mb: 3 }}>
-                  <CardContent sx={{ p: 4, textAlign: "center" }}>
-                    <Warning
-                      sx={{ fontSize: 60, color: "warning.main", mb: 2 }}
-                    />
-                    <Typography variant="h5" gutterBottom>
-                      Complete Your Profile
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      paragraph
-                    >
-                      To get started with ServEase, please create your customer
-                      profile. This will help us provide you with personalized
-                      service.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      startIcon={<Add />}
-                      onClick={openCreateForm}
-                      sx={{
-                        background:
-                          "linear-gradient(135deg, #FF4D00 0%, #FF7433 100%)",
-                        "&:hover": {
-                          background:
-                            "linear-gradient(135deg, #E63900 0%, #FF5722 100%)",
-                        },
-                      }}
-                    >
-                      Create Profile
-                    </Button>
-                  </CardContent>
-                </Card>
-              </>
+            {!profileCheckLoading && !hasProfile && !error && activeTab !== "profile" && (
+              <Alert severity="info" sx={{ mb: 3 }}>
+                <Typography
+                  variant="subtitle2"
+                  gutterBottom
+                  fontWeight="bold"
+                >
+                  Profile Setup Required
+                </Typography>
+                <Typography variant="body2">
+                  Some sections are currently locked. Complete your profile to
+                  unlock all features including Service appointments and
+                  Projects.
+                </Typography>
+              </Alert>
             )}
 
             {!profileCheckLoading &&
