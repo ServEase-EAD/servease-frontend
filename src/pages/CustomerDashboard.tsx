@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import {
   Box,
   Container,
@@ -34,7 +34,13 @@ import { useCustomer } from "../hooks/useCustomer";
 import { CustomerProfileForm } from "../components/CustomerDashboard/CustomerProfileForm";
 import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
 import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
+import DashboardSection from "../components/CustomerDashboard/DashboardSection";
+import AppointmentsSection from "../components/CustomerDashboard/AppointmentsSection";
+import ProjectsSection from "../components/CustomerDashboard/ProjectsSection";
+import VehiclesSection from "../components/CustomerDashboard/VehiclesSection";
+import ProfileSection from "../components/CustomerDashboard/ProfileSection";
 import { ChatbotButton } from "../components/chatbot";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
