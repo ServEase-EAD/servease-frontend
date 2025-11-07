@@ -9,7 +9,10 @@ export const TOKEN_STORAGE_KEY = "access_token";
 export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
 
 // Request timeout
-export const REQUEST_TIMEOUT = 30000; // 30 seconds
+export const REQUEST_TIMEOUT = 10000; // 10 seconds - reduced from 30 for faster failures
+
+// Specific timeout for endpoints that may take longer
+export const LONG_REQUEST_TIMEOUT = 30000; // 30 seconds for data-heavy endpoints
 
 // 🌐 Base URL for Nginx API Gateway
 export const API_BASE_URL =
@@ -197,9 +200,12 @@ export const API_ENDPOINTS = {
   CHATBOT: {
     CHAT: "/api/v1/chatbot/chat/",
     SESSIONS: "/api/v1/chatbot/sessions/",
-    SESSION_DETAIL: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/`,
-    DELETE_SESSION: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/delete/`,
-    CLEAR_SESSION: (sessionId: string) => `/api/v1/chatbot/session/${sessionId}/clear/`,
+    SESSION_DETAIL: (sessionId: string) =>
+      `/api/v1/chatbot/session/${sessionId}/`,
+    DELETE_SESSION: (sessionId: string) =>
+      `/api/v1/chatbot/session/${sessionId}/delete/`,
+    CLEAR_SESSION: (sessionId: string) =>
+      `/api/v1/chatbot/session/${sessionId}/clear/`,
   },
 
   // Admin endpoints

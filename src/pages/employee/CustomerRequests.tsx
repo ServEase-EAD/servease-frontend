@@ -31,6 +31,7 @@ import TaskDetailsDialog from "./TaskDetailsDialog";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import type { VehicleDetails } from "../../types";
 
 // ----------------- Types -----------------
 interface VehicleDetails {
@@ -98,7 +99,7 @@ const CustomerRequests: React.FC = () => {
           scheduled_date: task.scheduled_date,
           scheduled_time: task.scheduled_time,
           status: task.status,
-          customer_name: task.customer_name || 'Unknown Customer',
+          customer_name: task.customer_name || "Unknown Customer",
           vehicle_details: task.vehicle_details,
           customer_details: task.customer_details,
           service_description: task.service_description,
@@ -107,7 +108,7 @@ const CustomerRequests: React.FC = () => {
           estimated_cost: task.estimated_cost,
           duration_minutes: task.duration_minutes,
           assigned_employee_id: task.assigned_employee_id,
-          employee_name: task.employee_name
+          employee_name: task.employee_name,
         }));
 
         setTasks(tasks);

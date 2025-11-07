@@ -2,7 +2,7 @@
  * Admin Service
  * Handles all admin-related API calls for user management
  */
-import { apiClient } from "../config/api.config";
+import { apiClient, LONG_REQUEST_TIMEOUT } from "../config/api.config";
 
 // Types
 export interface User {
@@ -201,6 +201,7 @@ export const getAllAppointments = async (params?: {
 }): Promise<Appointment[]> => {
   const response = await apiClient.get("/api/v1/admin/appointments/", {
     params,
+    timeout: LONG_REQUEST_TIMEOUT, // Use longer timeout for appointments
   });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
@@ -210,7 +211,9 @@ export const getAllAppointments = async (params?: {
  * Get pending appointments
  */
 export const getPendingAppointments = async (): Promise<Appointment[]> => {
-  const response = await apiClient.get("/api/v1/admin/appointments/pending/");
+  const response = await apiClient.get("/api/v1/admin/appointments/pending/", {
+    timeout: LONG_REQUEST_TIMEOUT, // Use longer timeout for appointments
+  });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
 };

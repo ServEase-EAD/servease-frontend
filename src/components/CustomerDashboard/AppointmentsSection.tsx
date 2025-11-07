@@ -24,9 +24,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
 } from "@mui/material";
 import {
   Event as EventIcon,
@@ -41,14 +38,7 @@ import {
   getAppointmentById,
 } from "../../services/appointmentService";
 import { getCurrentCustomerProfile } from "../../services/customerService";
-import { getVehicles, type Vehicle } from "../../services/vehicleService";
-import type {
-  Appointment,
-  AppointmentStatus,
-  AppointmentType,
-  RescheduleAppointmentData,
-  CreateAppointmentData,
-} from "../../types";
+import type { Appointment, AppointmentStatus } from "../../types";
 import { formatDate, formatTime, getTodayDate } from "../../utils/dateUtils";
 import CreateAppointmentForm from "./Appointments/CreateAppointmentForm";
 import AppointmentDetails from "./Appointments/AppointmentDetails";
@@ -65,7 +55,15 @@ const statusColors: Record<
   no_show: "error",
 };
 
-const AppointmentsSection: React.FC = () => {
+interface AppointmentsSectionProps {
+  openCreateDialog?: boolean;
+  onDialogClose?: () => void;
+}
+
+const AppointmentsSection: React.FC<AppointmentsSectionProps> = ({
+  openCreateDialog = false,
+  onDialogClose,
+}) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +74,14 @@ const AppointmentsSection: React.FC = () => {
     useState<Appointment | null>(null);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+
+  // Handle opening create dialog from props
+  useEffect(() => {
+    if (openCreateDialog) {
+      setCreateDialogOpen(true);
+      onDialogClose?.();
+    }
+  }, [openCreateDialog, onDialogClose]);
 
   // Snackbar states
   const [snackbar, setSnackbar] = useState<{
@@ -148,19 +153,8 @@ const AppointmentsSection: React.FC = () => {
     }
   };
 
-  const fetchVehicles = async () => {
-    try {
-      const vehicleList = await getVehicles();
-      setVehicles(vehicleList);
-    } catch (err) {
-      console.error("Error fetching vehicles:", err);
-      showSnackbar("Failed to load vehicles", "error");
-    }
-  };
-
   useEffect(() => {
     fetchCustomerProfile();
-    fetchVehicles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -214,7 +208,7 @@ const AppointmentsSection: React.FC = () => {
       });
       setRescheduleDialogOpen(true);
       handleMenuClose();
-    } catch (err) {
+    } catch {
       showSnackbar("Failed to load appointment details", "error");
       handleMenuClose();
     }

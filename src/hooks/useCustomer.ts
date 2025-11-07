@@ -3,14 +3,27 @@
  * Custom hook for managing customer data and operations
  */
 import { useState, useEffect } from "react";
-import type { Customer, CustomerCreateRequest, CustomerUpdateRequest } from "../types";
+import type {
+  Customer,
+  CustomerCreateRequest,
+  CustomerUpdateRequest,
+} from "../types";
 import {
   getCurrentCustomerProfile,
   createCustomerProfile,
   updateCustomerProfile,
   checkCustomerProfileExists,
 } from "../services/customerService";
-import { getUserFromToken, getAccessToken, isTokenExpired, isAuthenticated } from "../services/authService";
+import {
+  getUserFromToken,
+  getAccessToken,
+  isTokenExpired,
+  isAuthenticated,
+} from "../services/authService";
+
+const CUSTOMER_CACHE_KEY = "customer_profile_cache";
+const PROFILE_CHECK_CACHE_KEY = "customer_profile_check_cache";
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
 interface UseCustomerReturn {
   customer: Customer | null;
@@ -26,10 +39,38 @@ interface UseCustomerReturn {
 }
 
 export const useCustomer = (): UseCustomerReturn => {
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(() => {
+    // Initialize from cache if available
+    const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          return data;
+        }
+      } catch (e) {
+        console.error("Error parsing cached customer:", e);
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasProfile, setHasProfile] = useState(false);
+  const [hasProfile, setHasProfile] = useState(() => {
+    // Initialize from cache if available
+    const cached = localStorage.getItem(PROFILE_CHECK_CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          return data;
+        }
+      } catch (e) {
+        console.error("Error parsing cached profile check:", e);
+      }
+    }
+    return false;
+  });
   const [profileCheckLoading, setProfileCheckLoading] = useState(false);
 
   const user = getUserFromToken();
@@ -55,9 +96,9 @@ export const useCustomer = (): UseCustomerReturn => {
         first_name: profile.first_name,
         last_name: profile.last_name,
         full_name: profile.full_name,
-        phone_number: profile.phone_number
+        phone_number: profile.phone_number,
       });
-      
+
       // Note: API now returns user_id as 'id' field due to logical consolidation
       console.log("Profile ID (should be user_id):", profile.id);
       console.log("User ID from auth:", user.id);
@@ -66,26 +107,44 @@ export const useCustomer = (): UseCustomerReturn => {
         has_email: !!profile.email,
         has_first_name: !!profile.first_name,
         has_last_name: !!profile.last_name,
-        has_phone: !!profile.phone_number
+        has_phone: !!profile.phone_number,
       });
-      
+
       setCustomer(profile);
       setHasProfile(true);
+
+      // Cache the profile with timestamp
+      localStorage.setItem(
+        CUSTOMER_CACHE_KEY,
+        JSON.stringify({
+          data: profile,
+          timestamp: Date.now(),
+        })
+      );
     } catch (err) {
       console.error("Error loading profile:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to load profile";
-      
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load profile";
+
       // If it's a network error, provide better context
       if (errorMessage.includes("No response from server")) {
-        setError("Unable to connect to customer service. Please check your connection and try again.");
-      } else if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+        setError(
+          "Unable to connect to customer service. Please check your connection and try again."
+        );
+      } else if (
+        errorMessage.includes("401") ||
+        errorMessage.includes("Unauthorized")
+      ) {
         setError("Authentication required. Please log in again.");
         // Clear tokens and redirect to login
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         window.location.href = "/login";
         return;
-      } else if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      } else if (
+        errorMessage.includes("404") ||
+        errorMessage.includes("Not Found")
+      ) {
         setError("Customer profile not found. Please create your profile.");
         setHasProfile(false);
       } else {
@@ -120,7 +179,7 @@ export const useCustomer = (): UseCustomerReturn => {
     console.log("Token details:", {
       hasToken: !!token,
       isExpired: token ? isTokenExpired(token) : "no token",
-      tokenLength: token?.length || 0
+      tokenLength: token?.length || 0,
     });
 
     setProfileCheckLoading(true);
@@ -132,6 +191,15 @@ export const useCustomer = (): UseCustomerReturn => {
       console.log("Profile check result:", result);
       setHasProfile(result.profile_exists);
 
+      // Cache the profile check result
+      localStorage.setItem(
+        PROFILE_CHECK_CACHE_KEY,
+        JSON.stringify({
+          data: result.profile_exists,
+          timestamp: Date.now(),
+        })
+      );
+
       if (result.profile_exists) {
         // Load the profile data
         console.log("Profile exists, loading profile data");
@@ -141,21 +209,33 @@ export const useCustomer = (): UseCustomerReturn => {
       }
     } catch (err) {
       console.error("Error checking profile exists:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to check profile";
-      
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to check profile";
+
       // If it's a network error, provide better context but don't assume no profile exists
-      if (errorMessage.includes("No response from server") || errorMessage.includes("Network Error")) {
-        setError("Unable to connect to customer service. Please check your connection and try again.");
+      if (
+        errorMessage.includes("No response from server") ||
+        errorMessage.includes("Network Error")
+      ) {
+        setError(
+          "Unable to connect to customer service. Please check your connection and try again."
+        );
         // Don't set hasProfile to false on network errors - we don't know if profile exists
         console.log("Network error occurred, not changing hasProfile state");
-      } else if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+      } else if (
+        errorMessage.includes("401") ||
+        errorMessage.includes("Unauthorized")
+      ) {
         setError("Authentication required. Please log in again.");
         // Clear tokens and redirect to login
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         window.location.href = "/login";
         return;
-      } else if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      } else if (
+        errorMessage.includes("404") ||
+        errorMessage.includes("Not Found")
+      ) {
         // Only set hasProfile to false for legitimate 404 responses
         setError("Customer profile not found. Please create your profile.");
         setHasProfile(false);
@@ -225,8 +305,33 @@ export const useCustomer = (): UseCustomerReturn => {
   // Initial profile check on mount
   useEffect(() => {
     if (user) {
-      checkProfileExists();
+      // Only fetch if cache is expired or doesn't exist
+      const profileCached = localStorage.getItem(CUSTOMER_CACHE_KEY);
+      const checkCached = localStorage.getItem(PROFILE_CHECK_CACHE_KEY);
+      let shouldFetch = true;
+
+      if (profileCached && checkCached) {
+        try {
+          const { timestamp: profileTimestamp } = JSON.parse(profileCached);
+          const { timestamp: checkTimestamp } = JSON.parse(checkCached);
+          const now = Date.now();
+
+          if (
+            now - profileTimestamp < CACHE_DURATION &&
+            now - checkTimestamp < CACHE_DURATION
+          ) {
+            shouldFetch = false;
+          }
+        } catch (e) {
+          console.error("Error checking cache:", e);
+        }
+      }
+
+      if (shouldFetch) {
+        checkProfileExists();
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   return {
