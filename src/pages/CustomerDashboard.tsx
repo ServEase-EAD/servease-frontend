@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import {
   Box,
   Container,
   Button,
   Paper,
   Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -34,13 +33,26 @@ import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
 import { useCustomer } from "../hooks/useCustomer";
 import { CustomerProfileForm } from "../components/CustomerDashboard/CustomerProfileForm";
-import DashboardSection from "../components/CustomerDashboard/DashboardSection";
-import AppointmentsSection from "../components/CustomerDashboard/AppointmentsSection";
-import ProjectsSection from "../components/CustomerDashboard/ProjectsSection";
-import VehiclesSection from "../components/CustomerDashboard/VehiclesSection";
-import ProfileSection from "../components/CustomerDashboard/ProfileSection";
 import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
 import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
+import LoadingSpinner from "../components/LoadingSpinner";
+
+// Lazy load sections for better performance
+const DashboardSection = lazy(
+  () => import("../components/CustomerDashboard/DashboardSection")
+);
+const AppointmentsSection = lazy(
+  () => import("../components/CustomerDashboard/AppointmentsSection")
+);
+const ProjectsSection = lazy(
+  () => import("../components/CustomerDashboard/ProjectsSection")
+);
+const VehiclesSection = lazy(
+  () => import("../components/CustomerDashboard/VehiclesSection")
+);
+const ProfileSection = lazy(
+  () => import("../components/CustomerDashboard/ProfileSection")
+);
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -187,9 +199,9 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return (
+    return (
+      <Suspense fallback={<LoadingSpinner message="Loading section..." />}>
+        {activeTab === "dashboard" && (
           <DashboardSection
             customer={customer}
             onNavigate={setActiveTab}
@@ -198,48 +210,34 @@ const CustomerDashboard: React.FC = () => {
             onOpenProjectDialog={handleOpenProjectDialog}
             onOpenVehicleDialog={handleOpenVehicleDialog}
           />
-        );
-      case "appointments":
-        return (
+        )}
+        {activeTab === "appointments" && (
           <AppointmentsSection
             openCreateDialog={openAppointmentDialog}
             onDialogClose={() => setOpenAppointmentDialog(false)}
           />
-        );
-      case "projects":
-        return (
+        )}
+        {activeTab === "projects" && (
           <ProjectsSection
             openCreateDialog={openProjectDialog}
             onDialogClose={() => setOpenProjectDialog(false)}
           />
-        );
-      case "vehicles":
-        return (
+        )}
+        {activeTab === "vehicles" && (
           <VehiclesSection
             openCreateDialog={openVehicleDialog}
             onDialogClose={() => setOpenVehicleDialog(false)}
           />
-        );
-      case "profile":
-        return (
+        )}
+        {activeTab === "profile" && (
           <ProfileSection
             customer={customer}
             onEditProfile={openEditForm}
             onCreateProfile={openCreateForm}
           />
-        );
-      default:
-        return (
-          <DashboardSection
-            customer={customer}
-            onNavigate={setActiveTab}
-            onShowProfileData={() => setShowProfileData(true)}
-            onOpenAppointmentDialog={handleOpenAppointmentDialog}
-            onOpenProjectDialog={handleOpenProjectDialog}
-            onOpenVehicleDialog={handleOpenVehicleDialog}
-          />
-        );
-    }
+        )}
+      </Suspense>
+    );
   };
 
   return (
@@ -360,9 +358,7 @@ const CustomerDashboard: React.FC = () => {
             </Box>
 
             {profileCheckLoading && (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
+              <LoadingSpinner message="Checking profile..." />
             )}
 
             {error && (

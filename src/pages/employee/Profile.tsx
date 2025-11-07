@@ -10,13 +10,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress,
   Snackbar,
   Alert,
   MenuItem,
 } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import api, { API_ENDPOINTS } from "../../config/api.config";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 interface EmployeeProfile {
   // Basic Information
@@ -36,103 +36,114 @@ interface EmployeeProfile {
   postalCode?: string;
 }
 
+const CACHE_KEY = "employee_profile_cache";
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [profile, setProfile] = useState<EmployeeProfile>({
-    // Basic Information
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    gender: undefined,
-    dateOfBirth: undefined,
-
-    // Address Information
-    addressLine1: undefined,
-    addressLine2: undefined,
-    city: undefined,
-    postalCode: undefined,
+  const [profile, setProfile] = useState<EmployeeProfile>(() => {
+    // Initialize from cache if available
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          return data;
+        }
+      } catch (e) {
+        console.error("Error parsing cached profile:", e);
+      }
+    }
+    return {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      gender: undefined,
+      dateOfBirth: undefined,
+      addressLine1: undefined,
+      addressLine2: undefined,
+      city: undefined,
+      postalCode: undefined,
+    };
   });
 
   useEffect(() => {
-    // Fetch fresh data on component mount
-    fetchProfileData();
+    // Only fetch if cache is expired or doesn't exist
+    const cached = localStorage.getItem(CACHE_KEY);
+    let shouldFetch = true;
+
+    if (cached) {
+      try {
+        const { timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          shouldFetch = false;
+        }
+      } catch (e) {
+        console.error("Error checking cache:", e);
+      }
+    }
+
+    if (shouldFetch) {
+      fetchProfileData();
+    }
   }, []);
 
   const fetchProfileData = async () => {
     try {
       setIsLoading(true);
-      setError(null); // Clear any previous errors
+      setError(null);
 
-      // Fetch from employee service instead of auth service
       const response = await api.get(API_ENDPOINTS.EMPLOYEES.PROFILE);
       const profileData = response.data;
 
-      console.log("Fetched profile data:", profileData);
-
       if (profileData) {
         const updatedProfile: EmployeeProfile = {
-          // Basic Information
           fullName: profileData.full_name || "",
           email: profileData.email || "",
           phoneNumber: profileData.phone_number || "",
           gender: profileData.gender as "Male" | "Female" | "Other" | undefined,
           dateOfBirth: profileData.date_of_birth || "",
-
-          // Address Information
           addressLine1: profileData.address_line1 || "",
           addressLine2: profileData.address_line2 || "",
           city: profileData.city || "",
           postalCode: profileData.postal_code || "",
         };
 
-        console.log("Updated profile:", updatedProfile);
-
-        // Update local state
         setProfile(updatedProfile);
 
-        // Cache the profile data
-        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+        // Cache with timestamp
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            data: updatedProfile,
+            timestamp: Date.now(),
+          })
+        );
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching profile:", err);
-      console.error("Error response:", err.response);
 
-      // Only show cached data message if we actually have cached data
-      const cachedProfile = localStorage.getItem("userProfile");
-      if (cachedProfile) {
+      // Try to use cache on error
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
         try {
-          const parsedProfile = JSON.parse(cachedProfile);
-          setProfile(parsedProfile);
-          console.log("Loaded profile from cache due to error:", parsedProfile);
-          // Only show this specific message if there was a network error
-          if (err.code === "ERR_NETWORK" || err.code === "ECONNABORTED") {
-            setError("Unable to fetch latest data. Showing cached profile.");
-          } else {
-            const errorMessage =
-              err.response?.data?.detail ||
-              err.response?.data?.message ||
-              "Failed to fetch profile data";
-            setError(errorMessage);
-          }
+          const { data } = JSON.parse(cached);
+          setProfile(data);
+          setError("Using cached data. Unable to fetch latest profile.");
         } catch (parseErr) {
           console.error("Error parsing cached profile:", parseErr);
-          setError("Failed to load profile data. Please try logging in again.");
+          setError("Failed to load profile data.");
         }
       } else {
-        const errorMessage =
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to fetch profile data";
-        setError(errorMessage);
+        setError("Failed to fetch profile data.");
       }
     } finally {
       setIsLoading(false);
@@ -156,18 +167,16 @@ const Profile: React.FC = () => {
         postal_code: profile.postalCode || "",
       };
 
-      // Use employee service endpoint instead of auth service
       await api.put(API_ENDPOINTS.EMPLOYEES.UPDATE_PROFILE, updateData);
-
-      // Fetch the complete updated profile from the server
       await fetchProfileData();
 
       setSuccessMessage("Profile updated successfully");
       setIsEditing(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error updating profile:", err);
+      const error = err as { response?: { data?: { message?: string } } };
       setError(
-        err.response?.data?.message ||
+        error.response?.data?.message ||
           "Failed to update profile. Please try again."
       );
     } finally {
@@ -183,7 +192,6 @@ const Profile: React.FC = () => {
 
     try {
       setIsLoading(true);
-      // Use employee service endpoint
       await api.post(API_ENDPOINTS.EMPLOYEES.CHANGE_PASSWORD, {
         current_password: currentPassword,
         new_password: newPassword,
@@ -194,8 +202,9 @@ const Profile: React.FC = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to update password");
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || "Failed to update password");
     } finally {
       setIsLoading(false);
     }
@@ -209,9 +218,7 @@ const Profile: React.FC = () => {
 
       {/* Loading State */}
       {isLoading && (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
+        <LoadingSpinner message="Loading profile..." minHeight="200px" />
       )}
 
       {/* Error Snackbar */}

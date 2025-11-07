@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import {
   Box,
   Card,
@@ -19,9 +19,12 @@ import { Link } from "react-router-dom";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
-import MyTasks from "./employee/MyTasks";
-import TimeLogs from "./employee/TimeLogs";
-import Profile from "./employee/Profile";
+import LoadingSpinner from "../components/LoadingSpinner";
+
+// Lazy load components for better performance
+const MyTasks = lazy(() => import("./employee/MyTasks"));
+const TimeLogs = lazy(() => import("./employee/TimeLogs"));
+const Profile = lazy(() => import("./employee/Profile"));
 
 const EmployeeDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("tasks");
@@ -36,16 +39,13 @@ const EmployeeDashboard: React.FC = () => {
   ];
 
   const renderContent = () => {
-    switch (activeSection) {
-      case "tasks":
-        return <MyTasks />;
-      case "timelogs":
-        return <TimeLogs />;
-      case "profile":
-        return <Profile />;
-      default:
-        return <MyTasks />;
-    }
+    return (
+      <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+        {activeSection === "tasks" && <MyTasks />}
+        {activeSection === "timelogs" && <TimeLogs />}
+        {activeSection === "profile" && <Profile />}
+      </Suspense>
+    );
   };
 
   return (
