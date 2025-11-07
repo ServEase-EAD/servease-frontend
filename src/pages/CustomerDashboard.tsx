@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import {
   Box,
   Container,
   Button,
   Paper,
   Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,7 +20,6 @@ import {
   Add,
   Warning,
   Menu as MenuIcon,
-  Chat as ChatIcon,
   Dashboard as DashboardIcon,
   Event as EventIcon,
   Build as BuildIcon,
@@ -34,13 +32,15 @@ import { NotificationBellMUI } from "../components/notifications";
 import { getUserFromToken } from "../services/authService";
 import { useCustomer } from "../hooks/useCustomer";
 import { CustomerProfileForm } from "../components/CustomerDashboard/CustomerProfileForm";
+import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
+import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
 import DashboardSection from "../components/CustomerDashboard/DashboardSection";
 import AppointmentsSection from "../components/CustomerDashboard/AppointmentsSection";
 import ProjectsSection from "../components/CustomerDashboard/ProjectsSection";
 import VehiclesSection from "../components/CustomerDashboard/VehiclesSection";
 import ProfileSection from "../components/CustomerDashboard/ProfileSection";
-import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
-import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
+import { ChatbotButton } from "../components/chatbot";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -48,6 +48,9 @@ const CustomerDashboard: React.FC = () => {
   const [showProfileData, setShowProfileData] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
+  const [openProjectDialog, setOpenProjectDialog] = useState(false);
+  const [openVehicleDialog, setOpenVehicleDialog] = useState(false);
 
   const user = getUserFromToken();
   const userId = user?.id || null;
@@ -171,39 +174,58 @@ const CustomerDashboard: React.FC = () => {
     setSidebarOpen(false);
   };
 
+  const handleOpenAppointmentDialog = () => {
+    setOpenAppointmentDialog(true);
+  };
+
+  const handleOpenProjectDialog = () => {
+    setOpenProjectDialog(true);
+  };
+
+  const handleOpenVehicleDialog = () => {
+    setOpenVehicleDialog(true);
+  };
+
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return (
+    return (
+      <Suspense fallback={<LoadingSpinner message="Loading section..." />}>
+        {activeTab === "dashboard" && (
           <DashboardSection
             customer={customer}
             onNavigate={setActiveTab}
             onShowProfileData={() => setShowProfileData(true)}
+            onOpenAppointmentDialog={handleOpenAppointmentDialog}
+            onOpenProjectDialog={handleOpenProjectDialog}
+            onOpenVehicleDialog={handleOpenVehicleDialog}
           />
-        );
-      case "appointments":
-        return <AppointmentsSection />;
-      case "projects":
-        return <ProjectsSection />;
-      case "vehicles":
-        return <VehiclesSection />;
-      case "profile":
-        return (
+        )}
+        {activeTab === "appointments" && (
+          <AppointmentsSection
+            openCreateDialog={openAppointmentDialog}
+            onDialogClose={() => setOpenAppointmentDialog(false)}
+          />
+        )}
+        {activeTab === "projects" && (
+          <ProjectsSection
+            openCreateDialog={openProjectDialog}
+            onDialogClose={() => setOpenProjectDialog(false)}
+          />
+        )}
+        {activeTab === "vehicles" && (
+          <VehiclesSection
+            openCreateDialog={openVehicleDialog}
+            onDialogClose={() => setOpenVehicleDialog(false)}
+          />
+        )}
+        {activeTab === "profile" && (
           <ProfileSection
             customer={customer}
             onEditProfile={openEditForm}
             onCreateProfile={openCreateForm}
           />
-        );
-      default:
-        return (
-          <DashboardSection
-            customer={customer}
-            onNavigate={setActiveTab}
-            onShowProfileData={() => setShowProfileData(true)}
-          />
-        );
-    }
+        )}
+      </Suspense>
+    );
   };
 
   return (
@@ -247,7 +269,12 @@ const CustomerDashboard: React.FC = () => {
               >
                 <MenuIcon />
               </IconButton>
-              <Typography variant="h5" component="h1" fontWeight="bold" color="text.primary">
+              <Typography
+                variant="h5"
+                component="h1"
+                fontWeight="bold"
+                color="text.primary"
+              >
                 {menuItems.find((item) => item.id === activeTab)?.label ||
                   "Dashboard"}
               </Typography>
@@ -289,39 +316,10 @@ const CustomerDashboard: React.FC = () => {
           {/* Content Area */}
           <Box sx={{ flexGrow: 1, p: 3, position: "relative" }}>
             {/* AI Chatbot Button */}
-            <Box
-              sx={{
-                position: "fixed",
-                bottom: 24,
-                right: 24,
-                zIndex: 1000,
-              }}
-            >
-              <IconButton
-                size="large"
-                sx={{
-                  backgroundColor: "#FF4D00",
-                  color: "white",
-                  width: 60,
-                  height: 60,
-                  boxShadow: "0 4px 12px rgba(255, 77, 0, 0.4)",
-                  "&:hover": {
-                    backgroundColor: "#E63900",
-                    transform: "scale(1.05)",
-                    boxShadow: "0 6px 16px rgba(255, 77, 0, 0.6)",
-                  },
-                  transition: "all 0.3s ease",
-                }}
-                aria-label="Open AI Chatbot"
-              >
-                <ChatIcon sx={{ fontSize: 28 }} />
-              </IconButton>
-            </Box>
+            <ChatbotButton />
 
             {profileCheckLoading && (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
+              <LoadingSpinner message="Checking profile..." />
             )}
 
             {error && (
@@ -361,21 +359,32 @@ const CustomerDashboard: React.FC = () => {
             {!profileCheckLoading && !hasProfile && !error && (
               <>
                 <Alert severity="info" sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom fontWeight="bold">
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                    fontWeight="bold"
+                  >
                     Profile Setup Required
                   </Typography>
                   <Typography variant="body2">
                     Some sections are currently locked. Complete your profile to
-                    unlock all features including Service appointments and Projects.
+                    unlock all features including Service appointments and
+                    Projects.
                   </Typography>
                 </Alert>
                 <Card elevation={3} sx={{ mb: 3 }}>
                   <CardContent sx={{ p: 4, textAlign: "center" }}>
-                    <Warning sx={{ fontSize: 60, color: "warning.main", mb: 2 }} />
+                    <Warning
+                      sx={{ fontSize: 60, color: "warning.main", mb: 2 }}
+                    />
                     <Typography variant="h5" gutterBottom>
                       Complete Your Profile
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      paragraph
+                    >
                       To get started with ServEase, please create your customer
                       profile. This will help us provide you with personalized
                       service.
@@ -401,7 +410,11 @@ const CustomerDashboard: React.FC = () => {
               </>
             )}
 
-            {!profileCheckLoading && (hasProfile || activeTab === "profile" || activeTab === "dashboard") && renderTabContent()}
+            {!profileCheckLoading &&
+              (hasProfile ||
+                activeTab === "profile" ||
+                activeTab === "dashboard") &&
+              renderTabContent()}
           </Box>
         </Box>
 
@@ -414,7 +427,12 @@ const CustomerDashboard: React.FC = () => {
           onTabChange={handleTabChange}
         />
 
-        <Dialog open={showProfileForm} onClose={closeForm} maxWidth="md" fullWidth>
+        <Dialog
+          open={showProfileForm}
+          onClose={closeForm}
+          maxWidth="md"
+          fullWidth
+        >
           <DialogTitle>
             {isEditMode ? "Update Customer Profile" : "Create Customer Profile"}
           </DialogTitle>
@@ -441,7 +459,9 @@ const CustomerDashboard: React.FC = () => {
           <DialogTitle>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Person color="primary" />
-              <Typography variant="h6">Complete Customer Profile Data</Typography>
+              <Typography variant="h6">
+                Complete Customer Profile Data
+              </Typography>
             </Box>
           </DialogTitle>
           <DialogContent>
@@ -454,7 +474,8 @@ const CustomerDashboard: React.FC = () => {
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(250px, 1fr))",
                       gap: 2,
                     }}
                   >
@@ -495,12 +516,16 @@ const CustomerDashboard: React.FC = () => {
               </Box>
             ) : (
               <Alert severity="info">
-                No customer profile data available. Please create a profile first.
+                No customer profile data available. Please create a profile
+                first.
               </Alert>
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowProfileData(false)} variant="contained">
+            <Button
+              onClick={() => setShowProfileData(false)}
+              variant="contained"
+            >
               Close
             </Button>
           </DialogActions>

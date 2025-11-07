@@ -2,7 +2,7 @@
  * Admin Service
  * Handles all admin-related API calls for user management
  */
-import { apiClient } from "../config/api.config";
+import { apiClient, LONG_REQUEST_TIMEOUT } from "../config/api.config";
 
 // Types
 export interface User {
@@ -144,6 +144,22 @@ export const healthCheck = async (): Promise<{
 
 // ==================== APPOINTMENT MANAGEMENT ====================
 
+// Vehicle details interface (used by enriched appointment data)
+export interface VehicleDetails {
+  vehicle_id: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  vin: string;
+  plate_number: string;
+  display_name: string;
+  age: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Appointment {
   id: string;
   customer_id: string;
@@ -155,7 +171,12 @@ export interface Appointment {
   description: string;
   category?: string;
   assigned_employees?: string[];
+  assigned_employee_id?: string; // Single employee ID from backend
+  employee_name?: string; // Employee name from backend
   created_at: string;
+  // Computed fields from backend
+  customer_name?: string;
+  vehicle_details?: string | VehicleDetails; // Can be string (legacy) or object (enriched)
 }
 
 export interface AppointmentStats {
@@ -180,6 +201,7 @@ export const getAllAppointments = async (params?: {
 }): Promise<Appointment[]> => {
   const response = await apiClient.get("/api/v1/admin/appointments/", {
     params,
+    timeout: LONG_REQUEST_TIMEOUT, // Use longer timeout for appointments
   });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
@@ -189,7 +211,9 @@ export const getAllAppointments = async (params?: {
  * Get pending appointments
  */
 export const getPendingAppointments = async (): Promise<Appointment[]> => {
-  const response = await apiClient.get("/api/v1/admin/appointments/pending/");
+  const response = await apiClient.get("/api/v1/admin/appointments/pending/", {
+    timeout: LONG_REQUEST_TIMEOUT, // Use longer timeout for appointments
+  });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
 };
@@ -305,8 +329,8 @@ export const getAllProjects = async (params?: {
   customer_id?: string;
   assigned_employee_id?: string;
 }): Promise<Project[]> => {
-  const response = await apiClient.get("/api/v1/admin/projects/", { 
-    params: { ...params, _t: Date.now() } // Cache busting
+  const response = await apiClient.get("/api/v1/admin/projects/", {
+    params: { ...params, _t: Date.now() }, // Cache busting
   });
   // Handle paginated response from Django REST Framework
   return response.data.results || response.data;
@@ -333,15 +357,21 @@ export const getProjectProgress = async (): Promise<Project[]> => {
 };
 
 /**
- * Approve a project
+ * Approve a project with tasks and employee assignments
  */
 export const approveProject = async (
   projectId: string,
-  assignedEmployeeId?: string
-): Promise<{ message: string }> => {
+  tasks: Array<{
+    title: string;
+    description?: string;
+    assigned_employee_id: string;
+    priority?: string;
+    due_date?: string;
+  }>
+): Promise<{ message: string; data: { project: Project; tasks: Task[] } }> => {
   const response = await apiClient.post(
     `/api/v1/admin/projects/${projectId}/approve/`,
-    { assigned_employee_id: assignedEmployeeId }
+    { tasks }
   );
   return response.data;
 };
@@ -461,11 +491,17 @@ export const deleteTask = async (taskId: string): Promise<void> => {
 
 export interface Vehicle {
   id: string;
-  registration_number: string;
+  vehicle_id?: string;
+  plate_number: string;
   make: string;
   model: string;
   year: number;
+  color?: string;
+  vin?: string;
   customer_id: string;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
   active_projects?: Project[];
   active_appointments?: Appointment[];
 }

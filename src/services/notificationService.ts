@@ -20,7 +20,7 @@ type ConnectionStatusCallback = (isConnected: boolean) => void;
 
 class NotificationService {
   private ws: WebSocket | null = null;
-  private userId: string | number | null = null;  // Support both UUID and number
+  private userId: string | number | null = null; // Support both UUID and number
   private reconnectTimeout: number | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -32,7 +32,8 @@ class NotificationService {
   /**
    * Connect to WebSocket for real-time notifications
    */
-  connect(userId: string | number): void {  // Accept both UUID string and number
+  connect(userId: string | number): void {
+    // Accept both UUID string and number
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log("WebSocket already connected");
       return;
@@ -54,16 +55,20 @@ class NotificationService {
 
     try {
       // Get JWT token from localStorage (try both possible keys)
-      const token = localStorage.getItem("access_token") || localStorage.getItem("accessToken");
-      
+      const token =
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("accessToken");
+
       if (!token) {
         console.error("Cannot connect: No authentication token found");
         return;
       }
-      
+
       // Add token as query parameter for WebSocket authentication
       const wsUrl = `${WS_BASE_URL}/ws/notifications/${this.userId}/?token=${token}`;
-      console.log(`Connecting to WebSocket for user ${this.userId} (authenticated)`);
+      console.log(
+        `Connecting to WebSocket for user ${this.userId} (authenticated)`
+      );
 
       this.ws = new WebSocket(wsUrl);
 
@@ -207,11 +212,16 @@ class NotificationService {
    * Fetch notifications from API
    */
   async getNotifications(
-    userId: string | number,  // Support both UUID and number
+    userId: string | number, // Support both UUID and number
     page = 1,
     pageSize = 20
   ): Promise<NotificationResponse> {
     const url = `${API_BASE_URL}/api/v1/notifications/?recipient_user_id=${userId}&page=${page}&page_size=${pageSize}`;
+
+    console.log("🔍 [NotificationService] Fetching notifications...");
+    console.log("   URL:", url);
+    console.log("   User ID:", userId);
+    console.log("   API_BASE_URL:", API_BASE_URL);
 
     const response = await fetch(url, {
       method: "GET",
@@ -220,17 +230,31 @@ class NotificationService {
       },
     });
 
+    console.log("📡 [NotificationService] Response status:", response.status);
+
     if (!response.ok) {
+      console.error(
+        "❌ [NotificationService] Failed to fetch:",
+        response.statusText
+      );
       throw new Error(`Failed to fetch notifications: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(
+      "✅ [NotificationService] Received notifications:",
+      data.count || data.results?.length || 0
+    );
+    console.log("   Data:", data);
+
+    return data;
   }
 
   /**
    * Get unread notification count
    */
-  async getUnreadCount(userId: string | number): Promise<number> {  // Support both UUID and number
+  async getUnreadCount(userId: string | number): Promise<number> {
+    // Support both UUID and number
     try {
       const data = await this.getNotifications(userId, 1, 1);
       // Filter unread from results or use count if backend provides it
