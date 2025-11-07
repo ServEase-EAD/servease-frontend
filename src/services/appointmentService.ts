@@ -68,9 +68,15 @@ export const createAppointment = async (
   data: CreateAppointmentData
 ): Promise<Appointment> => {
   try {
+    console.debug("[appointmentService] createAppointment request", data);
     const response = await apiClient.post<Appointment>(
       API_ENDPOINTS.APPOINTMENTS.CREATE,
       data
+    );
+    console.debug(
+      "[appointmentService] createAppointment response",
+      response.status,
+      response.data
     );
     return response.data;
   } catch (error) {

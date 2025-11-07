@@ -115,6 +115,14 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
     setLoading(true);
     setError(null);
 
+    console.debug(
+      "[CreateAppointmentForm] Submission started",
+      {
+        customerId,
+        formData,
+      }
+    );
+
     try {
       // Get the current user ID from the JWT token
       const currentUser = getUserFromToken();
@@ -133,7 +141,13 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
         created_by_user_id: currentUser.id,
       };
 
+      console.debug(
+        "[CreateAppointmentForm] Prepared appointment payload",
+        appointmentData
+      );
+
       await createAppointment(appointmentData);
+      console.debug("[CreateAppointmentForm] Appointment created successfully");
       showSnackbar("Appointment created successfully!", "success");
       onSuccess();
       onClose();
@@ -149,6 +163,7 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
         customer_notes: "",
       });
     } catch (err) {
+      console.error("[CreateAppointmentForm] Failed to create appointment", err);
       const errorMessage =
         err instanceof Error ? err.message : "Failed to create appointment";
       setError(errorMessage);
