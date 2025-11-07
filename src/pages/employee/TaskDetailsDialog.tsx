@@ -9,6 +9,7 @@ import {
   Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import type { VehicleDetails } from "../../types";
 
 interface Task {
   id: string;
@@ -17,7 +18,9 @@ interface Task {
   scheduled_time: string;
   status: string;
   customer_name: string;
+  customer_id?: string;
   vehicle_details: VehicleDetails;
+  vehicle_id?: string;
   customer_details?: any;
   service_description?: string;
   customer_notes?: string;
@@ -139,49 +142,77 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                 ? task.vehicle_details
                 : "Unknown Vehicle"}
             </Typography>
-            
+
             {task.vehicle_details ? (
-              <Box sx={{ display: 'grid', gap: 1.5, ml: 2 }}>
+              <Box sx={{ display: "grid", gap: 1.5, ml: 2 }}>
                 {task.vehicle_details.make && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">Make</Typography>
-                    <Typography variant="body2">{task.vehicle_details.make}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.make}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.model && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">Model</Typography>
-                    <Typography variant="body2">{task.vehicle_details.model}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.model}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.year && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">Year</Typography>
-                    <Typography variant="body2">{task.vehicle_details.year}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.year}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.color && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">Color</Typography>
-                    <Typography variant="body2">{task.vehicle_details.color}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.color}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.plate_number && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">License Plate</Typography>
-                    <Typography variant="body2">{task.vehicle_details.plate_number}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.plate_number}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.vin && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">VIN</Typography>
-                    <Typography variant="body2">{task.vehicle_details.vin}</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.vin}
+                    </Typography>
                   </Box>
                 )}
                 {task.vehicle_details.age && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     <Typography variant="subtitle2">Vehicle Age</Typography>
-                    <Typography variant="body2">{task.vehicle_details.age} years</Typography>
+                    <Typography variant="body2">
+                      {task.vehicle_details.age} years
+                    </Typography>
                   </Box>
                 )}
               </Box>

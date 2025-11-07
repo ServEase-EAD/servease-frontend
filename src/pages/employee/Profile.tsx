@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Button,
-
   TextField,
   Dialog,
   DialogTitle,
@@ -15,18 +14,17 @@ import {
   Snackbar,
   Alert,
   MenuItem,
-} from '@mui/material';
-import { Edit } from '@mui/icons-material';
-import api, { API_ENDPOINTS } from '../../config/api.config';
+} from "@mui/material";
+import { Edit } from "@mui/icons-material";
+import api, { API_ENDPOINTS } from "../../config/api.config";
 
 interface EmployeeProfile {
   // Basic Information
   fullName: string;
   email: string;
   phoneNumber: string;
-  gender?: 'Male' | 'Female' | 'Other';
+  gender?: "Male" | "Female" | "Other";
   dateOfBirth?: string;
-
 
   // Employment Information - removed (managed by admin)
   // System Information - removed (managed internally)
@@ -38,32 +36,21 @@ interface EmployeeProfile {
   postalCode?: string;
 }
 
-interface WorkloadSummary {
-  activeTasks: number;
-  pendingServices: number;
-  completedServices: number;
-  totalHoursLogged: string;
-}
-
-interface ApiError {
-  message: string;
-}
-
 const Profile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [profile, setProfile] = useState<EmployeeProfile>({
     // Basic Information
-    fullName: '',
-    email: '',
-    phoneNumber: '',
+    fullName: "",
+    email: "",
+    phoneNumber: "",
     gender: undefined,
     dateOfBirth: undefined,
 
@@ -71,7 +58,7 @@ const Profile: React.FC = () => {
     addressLine1: undefined,
     addressLine2: undefined,
     city: undefined,
-    postalCode: undefined
+    postalCode: undefined,
   });
 
   useEffect(() => {
@@ -83,61 +70,68 @@ const Profile: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null); // Clear any previous errors
-      
+
       // Fetch from employee service instead of auth service
       const response = await api.get(API_ENDPOINTS.EMPLOYEES.PROFILE);
       const profileData = response.data;
-      
-      console.log('Fetched profile data:', profileData);
-      
+
+      console.log("Fetched profile data:", profileData);
+
       if (profileData) {
         const updatedProfile: EmployeeProfile = {
           // Basic Information
-          fullName: profileData.full_name || '',
-          email: profileData.email || '',
-          phoneNumber: profileData.phone_number || '',
-          gender: profileData.gender as 'Male' | 'Female' | 'Other' | undefined,
-          dateOfBirth: profileData.date_of_birth || '',
+          fullName: profileData.full_name || "",
+          email: profileData.email || "",
+          phoneNumber: profileData.phone_number || "",
+          gender: profileData.gender as "Male" | "Female" | "Other" | undefined,
+          dateOfBirth: profileData.date_of_birth || "",
 
           // Address Information
-          addressLine1: profileData.address_line1 || '',
-          addressLine2: profileData.address_line2 || '',
-          city: profileData.city || '',
-          postalCode: profileData.postal_code || ''
+          addressLine1: profileData.address_line1 || "",
+          addressLine2: profileData.address_line2 || "",
+          city: profileData.city || "",
+          postalCode: profileData.postal_code || "",
         };
-        
-        console.log('Updated profile:', updatedProfile);
-        
+
+        console.log("Updated profile:", updatedProfile);
+
         // Update local state
         setProfile(updatedProfile);
-        
+
         // Cache the profile data
-        localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+        localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
       }
     } catch (err: any) {
-      console.error('Error fetching profile:', err);
-      console.error('Error response:', err.response);
-      
+      console.error("Error fetching profile:", err);
+      console.error("Error response:", err.response);
+
       // Only show cached data message if we actually have cached data
-      const cachedProfile = localStorage.getItem('userProfile');
+      const cachedProfile = localStorage.getItem("userProfile");
       if (cachedProfile) {
         try {
           const parsedProfile = JSON.parse(cachedProfile);
           setProfile(parsedProfile);
-          console.log('Loaded profile from cache due to error:', parsedProfile);
+          console.log("Loaded profile from cache due to error:", parsedProfile);
           // Only show this specific message if there was a network error
-          if (err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED') {
-            setError('Unable to fetch latest data. Showing cached profile.');
+          if (err.code === "ERR_NETWORK" || err.code === "ECONNABORTED") {
+            setError("Unable to fetch latest data. Showing cached profile.");
           } else {
-            const errorMessage = err.response?.data?.detail || err.response?.data?.message || 'Failed to fetch profile data';
+            const errorMessage =
+              err.response?.data?.detail ||
+              err.response?.data?.message ||
+              "Failed to fetch profile data";
             setError(errorMessage);
           }
         } catch (parseErr) {
-          console.error('Error parsing cached profile:', parseErr);
-          setError('Failed to load profile data. Please try logging in again.');
+          console.error("Error parsing cached profile:", parseErr);
+          setError("Failed to load profile data. Please try logging in again.");
         }
       } else {
-        const errorMessage = err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to fetch profile data';
+        const errorMessage =
+          err.response?.data?.detail ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch profile data";
         setError(errorMessage);
       }
     } finally {
@@ -156,23 +150,26 @@ const Profile: React.FC = () => {
         phone_number: profile.phoneNumber,
         gender: profile.gender,
         date_of_birth: profile.dateOfBirth,
-        address_line1: profile.addressLine1 || '',
-        address_line2: profile.addressLine2 || '',
-        city: profile.city || '',
-        postal_code: profile.postalCode || ''
+        address_line1: profile.addressLine1 || "",
+        address_line2: profile.addressLine2 || "",
+        city: profile.city || "",
+        postal_code: profile.postalCode || "",
       };
-      
+
       // Use employee service endpoint instead of auth service
       await api.put(API_ENDPOINTS.EMPLOYEES.UPDATE_PROFILE, updateData);
-      
+
       // Fetch the complete updated profile from the server
       await fetchProfileData();
-      
-      setSuccessMessage('Profile updated successfully');
+
+      setSuccessMessage("Profile updated successfully");
       setIsEditing(false);
     } catch (err: any) {
-      console.error('Error updating profile:', err);
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      console.error("Error updating profile:", err);
+      setError(
+        err.response?.data?.message ||
+          "Failed to update profile. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +177,7 @@ const Profile: React.FC = () => {
 
   const handlePasswordChange = async () => {
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+      setError("New passwords do not match");
       return;
     }
 
@@ -190,21 +187,19 @@ const Profile: React.FC = () => {
       await api.post(API_ENDPOINTS.EMPLOYEES.CHANGE_PASSWORD, {
         current_password: currentPassword,
         new_password: newPassword,
-        confirm_password: confirmPassword
+        confirm_password: confirmPassword,
       });
       setIsPasswordDialogOpen(false);
-      setSuccessMessage('Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setSuccessMessage("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      setError(err.response?.data?.message || "Failed to update password");
     } finally {
       setIsLoading(false);
     }
   };
-
-
 
   return (
     <Box>
@@ -220,40 +215,50 @@ const Profile: React.FC = () => {
       )}
 
       {/* Error Snackbar */}
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setError(null)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
           {error}
         </Alert>
       </Snackbar>
 
       {/* Success Snackbar */}
-      <Snackbar 
-        open={!!successMessage} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
         onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={() => setSuccessMessage(null)} severity="success" sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setSuccessMessage(null)}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
           {successMessage}
         </Alert>
       </Snackbar>
 
-        {/* Basic Information Card */}
+      {/* Basic Information Card */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
+            >
               <Typography variant="h6">Basic Information</Typography>
               {!isEditing && (
                 <Button
                   startIcon={<Edit />}
                   onClick={handleEditProfile}
-                  sx={{ color: '#FF4D00' }}
+                  sx={{ color: "#FF4D00" }}
                 >
                   Edit Profile
                 </Button>
@@ -262,9 +267,9 @@ const Profile: React.FC = () => {
 
             <Box
               sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-                gap: 2
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                gap: 2,
               }}
             >
               <TextField
@@ -284,18 +289,25 @@ const Profile: React.FC = () => {
                 fullWidth
                 label="Phone Number"
                 value={profile.phoneNumber}
-                onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})}
+                onChange={(e) =>
+                  setProfile({ ...profile, phoneNumber: e.target.value })
+                }
                 disabled={!isEditing}
               />
               <TextField
                 select
                 fullWidth
                 label="Gender"
-                value={profile.gender || ''}
-                onChange={(e) => setProfile({...profile, gender: e.target.value as 'Male' | 'Female' | 'Other'})}
+                value={profile.gender || ""}
+                onChange={(e) =>
+                  setProfile({
+                    ...profile,
+                    gender: e.target.value as "Male" | "Female" | "Other",
+                  })
+                }
                 disabled={!isEditing}
               >
-                {['Male', 'Female', 'Other'].map((option) => (
+                {["Male", "Female", "Other"].map((option) => (
                   <MenuItem key={option} value={option}>
                     {option}
                   </MenuItem>
@@ -305,47 +317,57 @@ const Profile: React.FC = () => {
                 fullWidth
                 type="date"
                 label="Date of Birth"
-                value={profile.dateOfBirth || ''}
-                onChange={(e) => setProfile({...profile, dateOfBirth: e.target.value})}
+                value={profile.dateOfBirth || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, dateOfBirth: e.target.value })
+                }
                 disabled={!isEditing}
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
                 fullWidth
                 label="Address Line 1"
-                value={profile.addressLine1 || ''}
-                onChange={(e) => setProfile({...profile, addressLine1: e.target.value})}
+                value={profile.addressLine1 || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, addressLine1: e.target.value })
+                }
                 disabled={!isEditing}
               />
               <TextField
                 fullWidth
                 label="Address Line 2"
-                value={profile.addressLine2 || ''}
-                onChange={(e) => setProfile({...profile, addressLine2: e.target.value})}
+                value={profile.addressLine2 || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, addressLine2: e.target.value })
+                }
                 disabled={!isEditing}
               />
               <TextField
                 fullWidth
                 label="City / Town"
-                value={profile.city || ''}
-                onChange={(e) => setProfile({...profile, city: e.target.value})}
+                value={profile.city || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, city: e.target.value })
+                }
                 disabled={!isEditing}
               />
               <TextField
                 fullWidth
                 label="Postal Code"
-                value={profile.postalCode || ''}
-                onChange={(e) => setProfile({...profile, postalCode: e.target.value})}
+                value={profile.postalCode || ""}
+                onChange={(e) =>
+                  setProfile({ ...profile, postalCode: e.target.value })
+                }
                 disabled={!isEditing}
               />
             </Box>
 
             {isEditing && (
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
                 <Button
                   variant="contained"
                   onClick={handleSaveProfile}
-                  sx={{ bgcolor: '#FF4D00', '&:hover': { bgcolor: '#cc3d00' } }}
+                  sx={{ bgcolor: "#FF4D00", "&:hover": { bgcolor: "#cc3d00" } }}
                 >
                   Save Changes
                 </Button>
@@ -358,19 +380,17 @@ const Profile: React.FC = () => {
         </CardContent>
       </Card>
 
-
-
       {/* Employment Information Card - REMOVED */}
       {/* This section is now managed through the admin/HR system */}
-
-
 
       {/* System Information Card - REMOVED */}
       {/* This section is now managed internally by the system */}
 
-
       {/* Change Password Dialog */}
-      <Dialog open={isPasswordDialogOpen} onClose={() => setIsPasswordDialogOpen(false)}>
+      <Dialog
+        open={isPasswordDialogOpen}
+        onClose={() => setIsPasswordDialogOpen(false)}
+      >
         <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
           <TextField
@@ -396,27 +416,34 @@ const Profile: React.FC = () => {
             margin="normal"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            error={newPassword !== confirmPassword && confirmPassword !== ''}
+            error={newPassword !== confirmPassword && confirmPassword !== ""}
             helperText={
-              newPassword !== confirmPassword && confirmPassword !== ''
-                ? 'Passwords do not match'
-                : ''
+              newPassword !== confirmPassword && confirmPassword !== ""
+                ? "Passwords do not match"
+                : ""
             }
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setIsPasswordDialogOpen(false);
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-          }}>
+          <Button
+            onClick={() => {
+              setIsPasswordDialogOpen(false);
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+            }}
+          >
             Cancel
           </Button>
           <Button
             onClick={handlePasswordChange}
             variant="contained"
-            disabled={!currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+            disabled={
+              !currentPassword ||
+              !newPassword ||
+              !confirmPassword ||
+              newPassword !== confirmPassword
+            }
           >
             Change Password
           </Button>
