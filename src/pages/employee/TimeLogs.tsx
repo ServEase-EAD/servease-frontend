@@ -229,10 +229,12 @@ const TimeLogs: React.FC = () => {
   // Calculate totals for each day
   const getDayTotals = (logs: TimeLog[]) => {
     const totalSeconds = logs.reduce((sum, log) => sum + (log.duration_seconds || 0), 0);
-    const totalHours = (totalSeconds / 3600).toFixed(1);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
     return {
       count: logs.length,
-      hours: `${totalHours}h`,
+      hours: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
     };
   };
 
@@ -691,8 +693,14 @@ const TimeLogs: React.FC = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 60, textAlign: 'right' }}>
-                            {((log.duration_seconds || 0) / 3600).toFixed(1)}h
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 80, textAlign: 'right', fontFamily: 'monospace' }}>
+                            {(() => {
+                              const totalSeconds = log.duration_seconds || 0;
+                              const hours = Math.floor(totalSeconds / 3600);
+                              const minutes = Math.floor((totalSeconds % 3600) / 60);
+                              const seconds = totalSeconds % 60;
+                              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            })()}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                             <Chip
@@ -734,8 +742,14 @@ const TimeLogs: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {selectedLog.vehicle || 'No vehicle'} • {selectedLog.service || 'No service'}
               </Typography>
-              <Typography sx={{ mb: 1 }}>
-                <strong>Duration:</strong> {((selectedLog.duration_seconds || 0) / 3600).toFixed(2)} hours
+              <Typography sx={{ mb: 1, fontFamily: 'monospace' }}>
+                <strong>Duration:</strong> {(() => {
+                  const totalSeconds = selectedLog.duration_seconds || 0;
+                  const hours = Math.floor(totalSeconds / 3600);
+                  const minutes = Math.floor((totalSeconds % 3600) / 60);
+                  const seconds = totalSeconds % 60;
+                  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                })()}
               </Typography>
               <Typography sx={{ mb: 1 }}>
                 <strong>Date:</strong> {formatDateLabel(selectedLog.log_date)}
