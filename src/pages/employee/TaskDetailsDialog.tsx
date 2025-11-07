@@ -3,12 +3,28 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Typography,
   Box,
-  IconButton,
+  Button,
   Chip,
+  Stack,
+  Divider,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import BuildIcon from "@mui/icons-material/Build";
+import DescriptionIcon from "@mui/icons-material/Description";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+
+interface VehicleDetails {
+  make?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  plate_number?: string;
+  vin?: string;
+  age?: number;
+}
 
 interface Task {
   id: string;
@@ -17,7 +33,7 @@ interface Task {
   scheduled_time: string;
   status: string;
   customer_name: string;
-  vehicle_details: VehicleDetails;
+  vehicle_details: VehicleDetails | string;
   customer_details?: any;
   service_description?: string;
   customer_notes?: string;
@@ -32,14 +48,20 @@ interface TaskDetailsDialogProps {
   open: boolean;
   onClose: () => void;
   task: Task | null;
+  onMarkAsNoShow?: (taskId: string) => void;
 }
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "completed":
       return "success";
-    case "in progress":
+    case "in_progress":
       return "warning";
+    case "confirmed":
+    case "not_started":
+      return "info";
+    case "no_show":
+      return "secondary";
     case "pending":
       return "error";
     default:
@@ -47,10 +69,24 @@ const getStatusColor = (status: string) => {
   }
 };
 
+const formatStatus = (status: string) => {
+  const map: Record<string, string> = {
+    pending: "Pending Confirmation",
+    confirmed: "Confirmed",
+    not_started: "Confirmed",
+    in_progress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    no_show: "No Show",
+  };
+  return map[status.toLowerCase()] || status;
+};
+
 const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
   open,
   onClose,
   task,
+  onMarkAsNoShow,
 }) => {
   if (!task) return null;
 
@@ -60,176 +96,91 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: 3,
-        },
-      }}
     >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          pb: 1,
-        }}
-      >
+      <DialogTitle>
         <Typography variant="h6">Task Details</Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Typography variant="caption" color="text.secondary">
+          Customer Appointment
+        </Typography>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            {task.appointment_type}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Service Request
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: "grid", gap: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Customer ID</Typography>
-            <Typography variant="body1" fontWeight="medium">
-              {task.customer_id}
-            </Typography>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          {/* Service Type */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <BuildIcon color="action" />
+            <Box>
+              <Typography variant="subtitle2">Service Type</Typography>
+              <Typography>{task.appointment_type}</Typography>
+            </Box>
           </Box>
+          <Divider />
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Customer Name</Typography>
-            <Typography variant="body1">{task.customer_name}</Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Vehicle ID</Typography>
-            <Typography variant="body1">{task.vehicle_id}</Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Vehicle Details</Typography>
-            <Typography variant="body1">
-              {typeof task.vehicle_details === "string"
-                ? task.vehicle_details
-                : "Unknown Vehicle"}
-            </Typography>
-            
-            {task.vehicle_details ? (
-              <Box sx={{ display: 'grid', gap: 1.5, ml: 2 }}>
-                {task.vehicle_details.make && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Make</Typography>
-                    <Typography variant="body2">{task.vehicle_details.make}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.model && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Model</Typography>
-                    <Typography variant="body2">{task.vehicle_details.model}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.year && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Year</Typography>
-                    <Typography variant="body2">{task.vehicle_details.year}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.color && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Color</Typography>
-                    <Typography variant="body2">{task.vehicle_details.color}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.plate_number && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">License Plate</Typography>
-                    <Typography variant="body2">{task.vehicle_details.plate_number}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.vin && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">VIN</Typography>
-                    <Typography variant="body2">{task.vehicle_details.vin}</Typography>
-                  </Box>
-                )}
-                {task.vehicle_details.age && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Vehicle Age</Typography>
-                    <Typography variant="body2">{task.vehicle_details.age} years</Typography>
-                  </Box>
-                )}
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No vehicle details available
+          {/* Description */}
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+            <DescriptionIcon color="action" />
+            <Box>
+              <Typography variant="subtitle2">Description</Typography>
+              <Typography>
+                {task.service_description || 
+                 task.customer_notes || 
+                 "No description available"}
               </Typography>
-            )}
+            </Box>
           </Box>
+          <Divider />
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Date</Typography>
-            <Typography variant="body1">{task.scheduled_date}</Typography>
+          {/* Scheduled Date & Time */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CalendarTodayIcon color="action" />
+            <Box>
+              <Typography variant="subtitle2">Scheduled Date & Time</Typography>
+              <Typography>
+                {task.scheduled_date} at {task.scheduled_time}
+              </Typography>
+            </Box>
           </Box>
+          <Divider />
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="subtitle2">Time</Typography>
-            <Typography variant="body1">{task.scheduled_time}</Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          {/* Status */}
+          <Box>
             <Typography variant="subtitle2">Status</Typography>
             <Chip
-              label={task.status}
+              label={formatStatus(task.status)}
               color={getStatusColor(task.status) as any}
               size="small"
             />
           </Box>
-        </Box>
+          <Divider />
+
+          {/* Created Date */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <AccessTimeIcon color="action" />
+            <Box>
+              <Typography variant="subtitle2">Created</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(task.scheduled_date).toLocaleString()}
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
       </DialogContent>
+      <DialogActions>
+        {(task.status === "confirmed" || task.status === "not_started") && (
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              onMarkAsNoShow?.(task.id);
+              onClose();
+            }}
+            >
+            Mark as No Show
+          </Button>
+        )}
+        <Button color="error" onClick={onClose}>
+          CLOSE
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };
