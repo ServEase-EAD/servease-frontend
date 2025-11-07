@@ -20,7 +20,6 @@ import {
   Add,
   Warning,
   Menu as MenuIcon,
-  Chat as ChatIcon,
   Dashboard as DashboardIcon,
   Event as EventIcon,
   Build as BuildIcon,
@@ -35,24 +34,7 @@ import { useCustomer } from "../hooks/useCustomer";
 import { CustomerProfileForm } from "../components/CustomerDashboard/CustomerProfileForm";
 import DesktopSidebar from "../components/CustomerDashboard/DesktopSidebar";
 import MobileSidebar from "../components/CustomerDashboard/MobileSidebar";
-import LoadingSpinner from "../components/LoadingSpinner";
-
-// Lazy load sections for better performance
-const DashboardSection = lazy(
-  () => import("../components/CustomerDashboard/DashboardSection")
-);
-const AppointmentsSection = lazy(
-  () => import("../components/CustomerDashboard/AppointmentsSection")
-);
-const ProjectsSection = lazy(
-  () => import("../components/CustomerDashboard/ProjectsSection")
-);
-const VehiclesSection = lazy(
-  () => import("../components/CustomerDashboard/VehiclesSection")
-);
-const ProfileSection = lazy(
-  () => import("../components/CustomerDashboard/ProfileSection")
-);
+import { ChatbotButton } from "../components/chatbot";
 
 const CustomerDashboard: React.FC = () => {
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -328,34 +310,7 @@ const CustomerDashboard: React.FC = () => {
           {/* Content Area */}
           <Box sx={{ flexGrow: 1, p: 3, position: "relative" }}>
             {/* AI Chatbot Button */}
-            <Box
-              sx={{
-                position: "fixed",
-                bottom: 24,
-                right: 24,
-                zIndex: 1000,
-              }}
-            >
-              <IconButton
-                size="large"
-                sx={{
-                  backgroundColor: "#FF4D00",
-                  color: "white",
-                  width: 60,
-                  height: 60,
-                  boxShadow: "0 4px 12px rgba(255, 77, 0, 0.4)",
-                  "&:hover": {
-                    backgroundColor: "#E63900",
-                    transform: "scale(1.05)",
-                    boxShadow: "0 6px 16px rgba(255, 77, 0, 0.6)",
-                  },
-                  transition: "all 0.3s ease",
-                }}
-                aria-label="Open AI Chatbot"
-              >
-                <ChatIcon sx={{ fontSize: 28 }} />
-              </IconButton>
-            </Box>
+            <ChatbotButton />
 
             {profileCheckLoading && (
               <LoadingSpinner message="Checking profile..." />

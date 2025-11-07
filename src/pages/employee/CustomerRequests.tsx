@@ -34,6 +34,16 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import type { VehicleDetails } from "../../types";
 
 // ----------------- Types -----------------
+interface VehicleDetails {
+  make?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  plate_number?: string;
+  vin?: string;
+  age?: number;
+}
+
 interface Task {
   id: string;
   appointment_type: string;
@@ -41,7 +51,7 @@ interface Task {
   scheduled_time: string;
   status: string;
   customer_name: string;
-  vehicle_details: VehicleDetails;
+  vehicle_details: VehicleDetails | string;
   customer_details?: any;
   service_description?: string;
   customer_notes?: string;
@@ -185,6 +195,7 @@ const CustomerRequests: React.FC = () => {
     const map: Record<string, string> = {
       pending: "Pending Confirmation",
       confirmed: "Confirmed",
+      not_started: "Confirmed",
       in_progress: "In Progress",
       completed: "Completed",
       cancelled: "Cancelled",
@@ -200,7 +211,10 @@ const CustomerRequests: React.FC = () => {
       case "in_progress":
         return "warning";
       case "confirmed":
+      case "not_started":
         return "info";
+      case "no_show":
+        return "secondary";
       case "pending":
         return "error";
       default:
@@ -361,6 +375,7 @@ const CustomerRequests: React.FC = () => {
                   pending: "Confirm",
                   confirmed: "Start Work",
                   in_progress: "Complete",
+                  not_started: "Start Work",
                 };
                 const nextButtonLabel =
                   nextStatusLabelMap[task.status.toLowerCase()] || "";
@@ -438,6 +453,7 @@ const CustomerRequests: React.FC = () => {
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
         task={selectedTask}
+        onMarkAsNoShow={(taskId) => updateTaskStatus(taskId, "no_show")}
       />
     </Box>
   );
