@@ -151,6 +151,9 @@ const SignUpPage: React.FC = () => {
         const userRole = getUserRole();
         console.log("Registration successful. User role:", userRole);
 
+        // Set a flag to indicate this is a new signup
+        localStorage.setItem("isNewSignup", "true");
+
         // Redirect based on user role
         if (userRole === "customer") {
           navigate("/customer-dashboard");
