@@ -73,11 +73,11 @@ export function NotificationItem({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-2">
           <p
             className={`text-sm ${
               isUnread ? "font-semibold" : "font-normal"
-            } text-gray-900 dark:text-gray-100`}
+            } text-gray-900 dark:text-gray-100 break-words`}
           >
             {notification.message}
           </p>
@@ -95,7 +95,7 @@ export function NotificationItem({
             e.stopPropagation();
             onDelete(notification.id);
           }}
-          className="flex-shrink-0 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="flex-shrink-0 self-start p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           aria-label="Delete notification"
         >
           <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
