@@ -7,6 +7,8 @@ import {
   type Task as ProjectTask,
 } from "../../services/projectService";
 import { getUserFromToken } from "../../services/authService";
+import { timelogService } from "../../services/timelogService";
+import type { TimeLog } from "../../types";
 import {
   Box,
   Card,
@@ -97,10 +99,52 @@ const MyTasks: React.FC = () => {
     message: "",
     severity: "success",
   });
+  
+  // Time log tracking
+  const [activeTimeLogs, setActiveTimeLogs] = useState<Map<string, TimeLog>>(new Map());
+  const [timerSeconds, setTimerSeconds] = useState<Map<string, number>>(new Map());
+
+  // Format time display
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${remainingSeconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    } else {
+      return `${remainingSeconds}s`;
+    }
+  };
+
+  // Timer effect - increments timer for in-progress tasks
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimerSeconds((prev) => {
+        const updated = new Map(prev);
+        let hasChanges = false;
+
+        for (const [taskKey, log] of activeTimeLogs) {
+          if (log.status === 'inprogress') {
+            const currentSeconds = updated.get(taskKey) || 0;
+            updated.set(taskKey, currentSeconds + 1);
+            hasChanges = true;
+          }
+        }
+
+        return hasChanges ? updated : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeTimeLogs]);
 
   // ----------------- Fetch Data -----------------
   useEffect(() => {
     fetchAllTasks();
+    fetchActiveTimeLogs();
   }, []);
 
   const fetchAllTasks = async () => {
@@ -162,6 +206,39 @@ const MyTasks: React.FC = () => {
       setLoading(false);
     }
   };
+  
+  const fetchActiveTimeLogs = async () => {
+    try {
+      const logs = await timelogService.getAllTimeLogs();
+      const activeLogsMap = new Map<string, TimeLog>();
+      const timerSecondsMap = new Map<string, number>();
+      
+      logs.forEach((log) => {
+        if (log.status === 'inprogress' || log.status === 'paused' || log.status === 'completed') {
+          const taskKey = `${log.task_type}-${log.task_type === 'appointment' ? log.appointment_id : log.project_id}`;
+          activeLogsMap.set(taskKey, log);
+          
+          // Initialize timer seconds based on status
+          if (log.status === 'inprogress' && log.start_time) {
+            // For in-progress: accumulated duration + current session time
+            const startTime = new Date(log.start_time).getTime();
+            const currentTime = new Date().getTime();
+            const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+            const totalSeconds = (log.duration_seconds || 0) + elapsedSeconds;
+            timerSecondsMap.set(taskKey, totalSeconds);
+          } else if (log.status === 'paused' || log.status === 'completed') {
+            // For paused/completed: just use the accumulated duration
+            timerSecondsMap.set(taskKey, log.duration_seconds || 0);
+          }
+        }
+      });
+      
+      setActiveTimeLogs(activeLogsMap);
+      setTimerSeconds(timerSecondsMap);
+    } catch (error) {
+      console.error("Error fetching active time logs:", error);
+    }
+  };
 
   // ----------------- Convert to Unified Format -----------------
   const unifiedTasks: UnifiedTask[] = [
@@ -220,13 +297,178 @@ const MyTasks: React.FC = () => {
     }
   };
 
-  // ----------------- Status Helpers -----------------
-  const handleStatusChange = (task: UnifiedTask) => {
-    if (task.type === "appointment") {
-      const nextStatus = getNextStatus(task.status);
-      if (nextStatus) {
-        updateAppointmentStatus(task.id, nextStatus);
+  const updateProjectTaskStatus = async (taskId: string, newStatus: string) => {
+    try {
+      await apiClient.patch(`/api/v1/projects/tasks/${taskId}/`, {
+        status: newStatus.toLowerCase(),
+      });
+
+      setProjectTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.task_id === taskId
+            ? { 
+                ...task, 
+                status: newStatus.toLowerCase() as "not_started" | "in_progress" | "completed" | "blocked"
+              }
+            : task
+        )
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Status updated to ${formatStatus(newStatus)}`,
+        severity: "success",
+      });
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+    }
+  };
+
+    // ----------------- Complete Task Function -----------------
+  
+  const completeTask = async (task: UnifiedTask) => {
+    try {
+      const taskKey = `${task.type}-${task.id}`;
+      const log = activeTimeLogs.get(taskKey);
+      
+      if (log) {
+        // Complete the time log
+        await timelogService.completeTimeLog(log.log_id);
+        
+        // Remove from active logs
+        setActiveTimeLogs((prev) => {
+          const updated = new Map(prev);
+          updated.delete(taskKey);
+          return updated;
+        });
+        
+        // Remove timer seconds
+        setTimerSeconds((prev) => {
+          const updated = new Map(prev);
+          updated.delete(taskKey);
+          return updated;
+        });
       }
+      
+      // Update task status to completed
+      if (task.type === 'appointment') {
+        await updateAppointmentStatus(task.id, 'completed');
+      } else {
+        await updateProjectTaskStatus(task.id, 'completed');
+      }
+      
+      setSnackbar({
+        open: true,
+        message: "Task completed successfully!",
+        severity: "success",
+      });
+      
+      // Refresh tasks to show the completed task
+      await fetchAllTasks();
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
+    }
+  };
+  
+  const getTaskKey = (task: UnifiedTask): string => {
+    return `${task.type}-${task.id}`;
+  };
+
+  // Helper function to get active time logs as array
+  const getActiveTimeLogsArray = (): TimeLog[] => {
+    const logs: TimeLog[] = [];
+    activeTimeLogs.forEach((log) => {
+      logs.push(log);
+    });
+    return logs;
+  };
+
+  // Helper function to check if any tasks have active or paused timers
+  const hasActiveOrPausedTimers = (): boolean => {
+    const logs = getActiveTimeLogsArray();
+    return logs.some(log => log.status === 'inprogress' || log.status === 'paused');
+  };
+
+  // ----------------- Status Helpers -----------------
+  const handleStatusChange = async (task: UnifiedTask) => {
+    try {
+      if (task.type === "appointment") {
+        const nextStatus = getNextStatus(task.status);
+        if (nextStatus) {
+          // If moving to in_progress, create a time log entry
+          if (nextStatus === "in_progress") {
+            // Create new time log entry to copy task to TimeLogs
+            const newLog = await timelogService.createTimeLog({
+              task_type: task.type,
+              appointment_id: task.id,
+              description: task.title,
+              vehicle: task.vehicle,
+              service: (task.originalData as AppointmentTask).appointment_type,
+              start_time: new Date().toISOString(),
+              status: 'inprogress',
+            });
+            
+            const taskKey = `${task.type}-${task.id}`;
+            setActiveTimeLogs((prev) => new Map(prev).set(taskKey, newLog));
+            setTimerSeconds((prev) => new Map(prev).set(taskKey, 0));
+            
+            setSnackbar({
+              open: true,
+              message: "Task started and copied to Time Logs page!",
+              severity: "success",
+            });
+          }
+          
+          // Update appointment status
+          await updateAppointmentStatus(task.id, nextStatus);
+          await fetchAllTasks(); // Refresh to show updated status
+        }
+      } else if (task.type === "project") {
+        // Handle project tasks if needed
+        const nextStatus = getNextStatus(task.status);
+        if (nextStatus && nextStatus === "in_progress") {
+          // Create new time log entry to copy task to TimeLogs
+          const newLog = await timelogService.createTimeLog({
+            task_type: task.type,
+            project_id: task.id,
+            description: task.title,
+            vehicle: task.vehicle,
+            start_time: new Date().toISOString(),
+            status: 'inprogress',
+          });
+          
+          const taskKey = `${task.type}-${task.id}`;
+          setActiveTimeLogs((prev) => new Map(prev).set(taskKey, newLog));
+          setTimerSeconds((prev) => new Map(prev).set(taskKey, 0));
+          
+          setSnackbar({
+            open: true,
+            message: "Task started and copied to Time Logs page!",
+            severity: "success",
+          });
+          
+          // Update project task status
+          await updateProjectTaskStatus(task.id, nextStatus);
+          await fetchAllTasks(); // Refresh to show updated status
+        }
+      }
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: "error",
+      });
     }
   };
 
@@ -249,8 +491,8 @@ const MyTasks: React.FC = () => {
     const map: Record<string, string> = {
       pending: "Pending",
       confirmed: "Confirmed",
+      not_started: "Confirmed",
       in_progress: "In Progress",
-      not_started: "Not Started",
       completed: "Completed",
       cancelled: "Cancelled",
       no_show: "No Show",
@@ -260,16 +502,18 @@ const MyTasks: React.FC = () => {
 
   const getStatusColor = (
     status: string
-  ): "default" | "error" | "warning" | "info" | "success" => {
+  ): "default" | "error" | "warning" | "info" | "success" | "secondary" => {
     switch (status.toLowerCase()) {
       case "completed":
         return "success";
       case "in_progress":
         return "warning";
       case "confirmed":
-        return "info";
-      case "pending":
       case "not_started":
+        return "info";
+      case "no_show":
+        return "secondary";
+      case "pending":
         return "error";
       default:
         return "default";
@@ -309,6 +553,25 @@ const MyTasks: React.FC = () => {
     ).length,
   };
 
+  // Helper function to parse due date and time for sorting
+  const parseDueDateTime = (task: UnifiedTask): number => {
+    if (task.dueDate === "No due date") return Infinity; // Push to end
+    try {
+      const dateStr = task.dueDate; // Format: "11/7/2025" or similar
+      const timeStr = task.dueTime || "00:00"; // Format: "HH:MM"
+      const dateTimeParts = dateStr.split('/');
+      const month = parseInt(dateTimeParts[0]) - 1; // JS months are 0-indexed
+      const day = parseInt(dateTimeParts[1]);
+      const year = parseInt(dateTimeParts[2]);
+      const timeParts = timeStr.split(':');
+      const hours = parseInt(timeParts[0]);
+      const minutes = parseInt(timeParts[1]) || 0;
+      return new Date(year, month, day, hours, minutes).getTime();
+    } catch {
+      return Infinity;
+    }
+  };
+
   // ----------------- Filter Tasks -----------------
   const filteredTasks = unifiedTasks
     .filter(
@@ -318,17 +581,17 @@ const MyTasks: React.FC = () => {
         task.status.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter((task) => (statusFilter ? task.status === statusFilter : true))
+    // Sort by due date and time - earliest due first
     .sort((a, b) => {
-      // Sort by date
-      if (a.dueDate === "No due date") return 1;
-      if (b.dueDate === "No due date") return -1;
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      const timeA = parseDueDateTime(a);
+      const timeB = parseDueDateTime(b);
+      return timeA - timeB;
     });
 
   const getNextButtonLabel = (status: string) => {
     const map: Record<string, string> = {
       pending: "Confirm",
-      not_started: "Start",
+      not_started: "Start Work",
       confirmed: "Start Work",
       in_progress: "Complete",
     };
@@ -464,6 +727,12 @@ const MyTasks: React.FC = () => {
                 <TableCell>
                   <strong>Status</strong>
                 </TableCell>
+                {/* Only show Timer column if there are any active or paused tasks */}
+                {hasActiveOrPausedTimers() && (
+                  <TableCell>
+                    <strong>Timer</strong>
+                  </TableCell>
+                )}
                 <TableCell>
                   <strong>Actions</strong>
                 </TableCell>
@@ -472,7 +741,7 @@ const MyTasks: React.FC = () => {
             <TableBody>
               {filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={hasActiveOrPausedTimers() ? 6 : 5} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No tasks assigned to you
                     </Typography>
@@ -481,18 +750,54 @@ const MyTasks: React.FC = () => {
               ) : (
                 filteredTasks.map((task) => {
                   const nextButtonLabel = getNextButtonLabel(task.status);
+                  const taskKey = getTaskKey(task);
+                  const activeLog = activeTimeLogs.get(taskKey);
+                  
+                  // Check if THIS task is the one in progress
+                  const isThisTaskInProgress = activeLog?.status === 'inprogress';
+                  
+                  // Check if THIS task is paused
+                  const isThisTaskPaused = activeLog?.status === 'paused';
 
                   return (
-                    <TableRow key={`${task.type}-${task.id}`}>
+                    <TableRow 
+                      key={`${task.type}-${task.id}`}
+                      sx={{
+                        backgroundColor: isThisTaskInProgress ? 'rgba(76, 175, 80, 0.08)' : 'inherit',
+                        '&:hover': {
+                          backgroundColor: isThisTaskInProgress ? 'rgba(76, 175, 80, 0.12)' : 'inherit',
+                        }
+                      }}
+                    >
                       <TableCell>
-                        <Typography variant="subtitle2">
-                          {task.title}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {task.type === "appointment"
-                            ? "Customer Appointment"
-                            : "Project Task"}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box>
+                            <Typography variant="subtitle2">
+                              {task.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {task.type === "appointment"
+                                ? "Customer Appointment"
+                                : "Project Task"}
+                            </Typography>
+                          </Box>
+                          {isThisTaskInProgress && (
+                            <Chip 
+                              label="IN PROGRESS" 
+                              size="small" 
+                              color="success" 
+                              sx={{ ml: 1, fontWeight: 'bold' }}
+                            />
+                          )}
+                          {isThisTaskPaused && (
+                            <Chip 
+                              label="PAUSED" 
+                              size="small" 
+                              color="warning" 
+                              sx={{ ml: 1, fontWeight: 'bold' }}
+                            />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>{task.vehicle}</TableCell>
                       <TableCell>
@@ -508,12 +813,60 @@ const MyTasks: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={formatStatus(task.status)}
-                          color={getStatusColor(task.status)}
-                          size="small"
-                        />
+                        {/* Display status based on time log status if exists */}
+                        {activeLog?.status === 'completed' ? (
+                          <Chip
+                            label="Completed"
+                            color="success" 
+                            size="small"
+                            icon={<CheckCircleIcon />}
+                          />
+                        ) : activeLog?.status === 'inprogress' ? (
+                          <Chip
+                            label="In Progress"
+                            color="warning"
+                            size="small"
+                            icon={<BuildIcon />}
+                          />
+                        ) : activeLog?.status === 'paused' ? (
+                          <Chip
+                            label="Paused"
+                            color="warning"
+                            size="small"
+                            icon={<AccessTimeIcon />}
+                          />
+                        ) : (
+                          <Chip
+                            label={formatStatus(task.status)}
+                            color={getStatusColor(task.status)}
+                            size="small"
+                          />
+                        )}
                       </TableCell>
+                      {/* Only show Timer column if there are any active or paused tasks */}
+                      {hasActiveOrPausedTimers() && (
+                        <TableCell>
+                          {activeLog && isThisTaskInProgress ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <AccessTimeIcon color="success" />
+                              <Typography variant="body2" color="success.main">
+                                {formatTime(timerSeconds.get(taskKey) || 0)}
+                              </Typography>
+                            </Box>
+                          ) : activeLog && isThisTaskPaused ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <AccessTimeIcon color="warning" />
+                              <Typography variant="body2" color="warning.main">
+                                {formatTime(timerSeconds.get(taskKey) || 0)} (Paused)
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              --
+                            </Typography>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Stack direction="row" spacing={1}>
                           <Button
@@ -528,15 +881,31 @@ const MyTasks: React.FC = () => {
                             View
                           </Button>
 
-                          {task.status !== "completed" && nextButtonLabel && (
+                          {/* Show Complete button for in-progress tasks */}
+                          {activeLog?.status === 'inprogress' ? (
                             <Button
                               variant="contained"
                               size="small"
                               color="success"
-                              onClick={() => handleStatusChange(task)}
+                              startIcon={<CheckCircleIcon />}
+                              onClick={() => completeTask(task)}
                             >
-                              {nextButtonLabel}
+                              Complete
                             </Button>
+                          ) : (
+                            /* Show action buttons only for non-completed tasks */
+                            activeLog?.status !== 'completed' && 
+                            task.status !== "completed" && 
+                            nextButtonLabel && (
+                              <Button
+                                variant="contained"
+                                size="small"
+                                color="success"
+                                onClick={() => handleStatusChange(task)}
+                              >
+                                {nextButtonLabel}
+                              </Button>
+                            )
                           )}
                         </Stack>
                       </TableCell>
@@ -562,7 +931,7 @@ const MyTasks: React.FC = () => {
       <Dialog
         open={detailsDialogOpen}
         onClose={() => setDetailsDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
       >
         {selectedTask && (
@@ -577,141 +946,55 @@ const MyTasks: React.FC = () => {
             </DialogTitle>
             <DialogContent>
               <Stack spacing={2} sx={{ mt: 1 }}>
-                {selectedTask.type === "appointment" ? (
+                {/* Task Title */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BuildIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {selectedTask.type === "appointment" ? "Service Type" : "Task Title"}
+                    </Typography>
+                    <Typography>{selectedTask.title}</Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Description */}
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                  <DescriptionIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">Description</Typography>
+                    <Typography>
+                      {selectedTask.type === "appointment"
+                        ? (selectedTask.originalData as AppointmentTask).service_description || 
+                          (selectedTask.originalData as AppointmentTask).customer_notes || 
+                          "No description available"
+                        : (selectedTask.originalData as ProjectTask).description || "No description available"}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Due Date */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CalendarTodayIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">
+                      {selectedTask.type === "appointment" ? "Scheduled Date & Time" : "Due Date"}
+                    </Typography>
+                    <Typography>
+                      {selectedTask.type === "appointment"
+                        ? `${new Date(selectedTask.dueDate).toLocaleDateString()} at ${selectedTask.dueTime}`
+                        : selectedTask.dueDate === "No due date"
+                        ? "No due date set"
+                        : new Date(selectedTask.dueDate).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Divider />
+
+                {/* Priority (only for project tasks) */}
+                {selectedTask.type === "project" && (
                   <>
-                    {/* Appointment Details */}
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Service Type
-                      </Typography>
-                      <Typography>
-                        {
-                          (selectedTask.originalData as AppointmentTask)
-                            .appointment_type
-                        }
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Customer
-                      </Typography>
-                      <Typography>
-                        {
-                          (selectedTask.originalData as AppointmentTask)
-                            .customer_name
-                        }
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Vehicle
-                      </Typography>
-                      <Typography>{selectedTask.vehicle}</Typography>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Scheduled Date & Time
-                      </Typography>
-                      <Typography>
-                        {new Date(selectedTask.dueDate).toLocaleDateString()} at{" "}
-                        {selectedTask.dueTime}
-                      </Typography>
-                    </Box>
-                    <Divider />
-                    {(selectedTask.originalData as AppointmentTask)
-                      .service_description && (
-                      <>
-                        <Box>
-                          <Typography
-                            variant="subtitle2"
-                            color="text.secondary"
-                          >
-                            Service Description
-                          </Typography>
-                          <Typography>
-                            {
-                              (selectedTask.originalData as AppointmentTask)
-                                .service_description
-                            }
-                          </Typography>
-                        </Box>
-                        <Divider />
-                      </>
-                    )}
-                    {(selectedTask.originalData as AppointmentTask)
-                      .customer_notes && (
-                      <>
-                        <Box>
-                          <Typography
-                            variant="subtitle2"
-                            color="text.secondary"
-                          >
-                            Customer Notes
-                          </Typography>
-                          <Typography>
-                            {
-                              (selectedTask.originalData as AppointmentTask)
-                                .customer_notes
-                            }
-                          </Typography>
-                        </Box>
-                        <Divider />
-                      </>
-                    )}
-                    <Box>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Status
-                      </Typography>
-                      <Chip
-                        label={formatStatus(selectedTask.status)}
-                        color={getStatusColor(selectedTask.status)}
-                        size="small"
-                      />
-                    </Box>
-                  </>
-                ) : (
-                  <>
-                    {/* Project Task Details */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <BuildIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Task Title</Typography>
-                        <Typography>{selectedTask.title}</Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
-                    <Box
-                      sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}
-                    >
-                      <DescriptionIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Description</Typography>
-                        <Typography>
-                          {
-                            (selectedTask.originalData as ProjectTask)
-                              .description
-                          }
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CalendarTodayIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Due Date</Typography>
-                        <Typography>
-                          {selectedTask.dueDate === "No due date"
-                            ? "No due date set"
-                            : new Date(
-                                selectedTask.dueDate
-                              ).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Divider />
                     <Box>
                       <Typography variant="subtitle2">Priority</Typography>
                       <Typography
@@ -725,54 +1008,91 @@ const MyTasks: React.FC = () => {
                         {(selectedTask.originalData as ProjectTask).priority
                           .charAt(0)
                           .toUpperCase() +
-                          (
-                            selectedTask.originalData as ProjectTask
-                          ).priority.slice(1)}
+                          (selectedTask.originalData as ProjectTask).priority.slice(1)}
                       </Typography>
                     </Box>
                     <Divider />
-                    <Box>
-                      <Typography variant="subtitle2">Status</Typography>
-                      <Chip
-                        label={formatStatus(selectedTask.status)}
-                        color={getStatusColor(selectedTask.status)}
-                        size="small"
-                      />
-                    </Box>
-                    <Divider />
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <AccessTimeIcon color="action" />
-                      <Box>
-                        <Typography variant="subtitle2">Created</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(
-                            (
-                              selectedTask.originalData as ProjectTask
-                            ).created_at
-                          ).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Box>
                   </>
                 )}
+
+                {/* Status */}
+                <Box>
+                  <Typography variant="subtitle2">Status</Typography>
+                  <Chip
+                    label={formatStatus(selectedTask.status)}
+                    color={getStatusColor(selectedTask.status)}
+                    size="small"
+                  />
+                </Box>
+                <Divider />
+
+                {/* Created Date */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <AccessTimeIcon color="action" />
+                  <Box>
+                    <Typography variant="subtitle2">Created</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedTask.type === "appointment"
+                        ? new Date((selectedTask.originalData as AppointmentTask).scheduled_date).toLocaleString()
+                        : new Date((selectedTask.originalData as ProjectTask).created_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
               </Stack>
             </DialogContent>
             <DialogActions>
-              {selectedTask.status !== "completed" &&
-                getNextButtonLabel(selectedTask.status) && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    startIcon={<CheckCircleIcon />}
-                    onClick={() => {
-                      handleStatusChange(selectedTask);
-                      setDetailsDialogOpen(false);
-                    }}
-                  >
-                    {getNextButtonLabel(selectedTask.status)}
-                  </Button>
-                )}
-              <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
+              {/* Get active log for this task */}
+              {(() => {
+                const taskKey = getTaskKey(selectedTask);
+                const activeLog = activeTimeLogs.get(taskKey);
+                
+                return (
+                  <>
+                    {/* Show action buttons only for non-completed tasks */}
+                    {activeLog?.status !== 'completed' &&
+                      selectedTask.status !== "completed" &&
+                      selectedTask.status !== "no_show" &&
+                      getNextButtonLabel(selectedTask.status) && (
+                        <Button
+                          variant="contained"
+                          color="success"
+                          startIcon={<CheckCircleIcon />}
+                          onClick={() => {
+                            handleStatusChange(selectedTask);
+                            setDetailsDialogOpen(false);
+                          }}
+                        >
+                          {getNextButtonLabel(selectedTask.status)}
+                        </Button>
+                      )}
+                    {/* Show No Show button only for non-completed tasks */}
+                    {activeLog?.status !== 'completed' &&
+                      (selectedTask.status === "confirmed" || selectedTask.status === "not_started") && (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={async () => {
+                            try {
+                              if (selectedTask.type === "appointment") {
+                                await updateAppointmentStatus(selectedTask.id, "no_show");
+                              } else {
+                                await updateProjectTaskStatus(selectedTask.id, "no_show");
+                              }
+                              setDetailsDialogOpen(false);
+                            } catch (error) {
+                              console.error("Error marking as no show:", error);
+                            }
+                          }}
+                        >
+                          Mark as No Show
+                        </Button>
+                      )}
+                  </>
+                );
+              })()}
+              <Button color="error" onClick={() => setDetailsDialogOpen(false)}>
+                CLOSE
+              </Button>
             </DialogActions>
           </>
         )}
