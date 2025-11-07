@@ -5,7 +5,7 @@
 
 import type { Notification } from "../../types/notification";
 import { formatDistanceToNow } from "date-fns";
-import { X, Bell, Calendar, Car, Info } from "lucide-react";
+import { X, Bell, Calendar, Car, FolderOpen, Info } from "lucide-react";
 
 interface NotificationItemProps {
   notification: Notification;
@@ -26,6 +26,8 @@ export function NotificationItem({
         return <Calendar className="w-5 h-5 text-blue-500" />;
       case "VEHICLE":
         return <Car className="w-5 h-5 text-green-500" />;
+      case "PROJECT":
+        return <FolderOpen className="w-5 h-5 text-orange-500" />;
       case "SYSTEM":
         return <Bell className="w-5 h-5 text-purple-500" />;
       default:
@@ -71,11 +73,11 @@ export function NotificationItem({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-2">
           <p
             className={`text-sm ${
               isUnread ? "font-semibold" : "font-normal"
-            } text-gray-900 dark:text-gray-100`}
+            } text-gray-900 dark:text-gray-100 break-words`}
           >
             {notification.message}
           </p>
@@ -93,7 +95,7 @@ export function NotificationItem({
             e.stopPropagation();
             onDelete(notification.id);
           }}
-          className="flex-shrink-0 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="flex-shrink-0 self-start p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           aria-label="Delete notification"
         >
           <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />

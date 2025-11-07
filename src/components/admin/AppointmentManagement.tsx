@@ -28,7 +28,13 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import { CheckCircle, Cancel, Assignment, Schedule } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Cancel,
+  Assignment,
+  Schedule,
+  FilterList,
+} from "@mui/icons-material";
 import {
   getAllAppointments,
   approveAppointment,
@@ -39,6 +45,7 @@ import {
   type Appointment,
   type AppointmentStats,
   type User,
+  type VehicleDetails,
 } from "../../services/adminService";
 
 const AppointmentManagement: React.FC = () => {
@@ -58,6 +65,19 @@ const AppointmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Filter states
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    // Default to 30 days ago
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState<string>(() => {
+    // Default to today
+    return new Date().toISOString().split("T")[0];
+  });
+  const [statusFilter, setStatusFilter] = useState<string>("");
 
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
@@ -81,15 +101,43 @@ const AppointmentManagement: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      const [allData, employeesData] = await Promise.all([
-        getAllAppointments(),
+      // Build filter params
+      const params: Record<string, string> = {};
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
+      if (statusFilter) params.status = statusFilter;
+
+      // Load data in parallel with proper error handling
+      const [allDataResult, employeesDataResult] = await Promise.allSettled([
+        getAllAppointments(params),
         getAllUsers("employee"),
       ]);
+
+      // Handle appointments data
+      let allData: Appointment[] = [];
+      if (allDataResult.status === "fulfilled") {
+        allData = allDataResult.value;
+      } else {
+        console.error("Failed to load appointments:", allDataResult.reason);
+        throw new Error("Failed to load appointments");
+      }
+
+      // Handle employees data
+      let employeesData: User[] = [];
+      if (employeesDataResult.status === "fulfilled") {
+        employeesData = employeesDataResult.value;
+      } else {
+        console.error("Failed to load employees:", employeesDataResult.reason);
+        // Continue even if employees fail to load
+      }
 
       const pending = allData.filter(
         (a: Appointment) => a.status === "pending"
@@ -113,9 +161,11 @@ const AppointmentManagement: React.FC = () => {
         ).length,
       };
       setStatistics(stats);
-      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load data";
+      setError(errorMessage);
+      console.error("Load data error:", err);
     } finally {
       setLoading(false);
     }
@@ -134,6 +184,15 @@ const AppointmentManagement: React.FC = () => {
   const handleApprove = async () => {
     if (!selectedAppointment) return;
 
+    // Validate that at least one employee is selected
+    if (
+      !approveForm.assigned_employees ||
+      approveForm.assigned_employees.length === 0
+    ) {
+      setError("Please select at least one employee to assign");
+      return;
+    }
+
     try {
       setLoading(true);
       await approveAppointment(selectedAppointment.id, {
@@ -146,6 +205,7 @@ const AppointmentManagement: React.FC = () => {
       setApproveDialog(false);
       loadData();
     } catch (err) {
+      console.error("Approval error:", err);
       setError(
         err instanceof Error ? err.message : "Failed to approve appointment"
       );
@@ -267,7 +327,6 @@ const AppointmentManagement: React.FC = () => {
             <TableRow>
               <TableCell>Date & Time</TableCell>
               <TableCell>Customer</TableCell>
-              <TableCell>Type</TableCell>
               <TableCell>Vehicle</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Assigned Employee</TableCell>
@@ -277,74 +336,93 @@ const AppointmentManagement: React.FC = () => {
           <TableBody>
             {appointmentList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={6} align="center">
                   No appointments found
                 </TableCell>
               </TableRow>
             ) : (
-              appointmentList.map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell>
-                    {appointment.scheduled_date} at {appointment.scheduled_time}
-                  </TableCell>
-                  <TableCell>{appointment.customer_id}</TableCell>
-                  <TableCell>{appointment.service_type || "N/A"}</TableCell>
-                  <TableCell>{appointment.vehicle_id}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={appointment.status}
-                      color={getStatusColor(appointment.status)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {appointment.assigned_employees &&
-                    appointment.assigned_employees.length > 0
-                      ? appointment.assigned_employees.join(", ")
-                      : "Not assigned"}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      {appointment.status === "pending" && (
-                        <>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => handleApproveClick(appointment)}
-                            title="Approve"
-                          >
-                            <CheckCircle />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRejectClick(appointment)}
-                            title="Reject"
-                          >
-                            <Cancel />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleAssignClick(appointment)}
-                            title="Assign Employee"
-                          >
-                            <Assignment />
-                          </IconButton>
-                        </>
-                      )}
-                      <IconButton
+              appointmentList.map((appointment) => {
+                // Helper function to get vehicle display name
+                const getVehicleDisplayName = (
+                  vehicleDetails: string | VehicleDetails | undefined
+                ): string => {
+                  if (!vehicleDetails) return appointment.vehicle_id;
+                  if (typeof vehicleDetails === "string") return vehicleDetails;
+                  // If it's an object, use display_name or construct from make/model/year
+                  return (
+                    vehicleDetails.display_name ||
+                    `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`
+                  );
+                };
+
+                return (
+                  <TableRow key={appointment.id}>
+                    <TableCell>
+                      {appointment.scheduled_date} at{" "}
+                      {appointment.scheduled_time}
+                    </TableCell>
+                    <TableCell>
+                      {appointment.customer_name || appointment.customer_id}
+                    </TableCell>
+                    <TableCell>
+                      {getVehicleDisplayName(appointment.vehicle_details)}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={appointment.status}
+                        color={getStatusColor(appointment.status)}
                         size="small"
-                        color="info"
-                        onClick={() => handleRescheduleClick(appointment)}
-                        title="Reschedule"
-                      >
-                        <Schedule />
-                      </IconButton>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {appointment.assigned_employees &&
+                      appointment.assigned_employees.length > 0
+                        ? appointment.assigned_employees.join(", ")
+                        : appointment.employee_name || "Not assigned"}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {appointment.status === "pending" && (
+                          <>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleApproveClick(appointment)}
+                              title="Approve"
+                            >
+                              <CheckCircle />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRejectClick(appointment)}
+                              title="Reject"
+                            >
+                              <Cancel />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleAssignClick(appointment)}
+                              title="Assign Employee"
+                            >
+                              <Assignment />
+                            </IconButton>
+                          </>
+                        )}
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => handleRescheduleClick(appointment)}
+                          title="Reschedule"
+                        >
+                          <Schedule />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -361,6 +439,9 @@ const AppointmentManagement: React.FC = () => {
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
+          <Button size="small" onClick={loadData} sx={{ ml: 2 }}>
+            Retry
+          </Button>
         </Alert>
       )}
       {success && (
@@ -437,6 +518,67 @@ const AppointmentManagement: React.FC = () => {
         </Card>
       </Box>
 
+      {/* Filters Section */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <FilterList sx={{ mr: 1 }} />
+            <Typography variant="h6">Filters</Typography>
+            <Button
+              size="small"
+              onClick={() => {
+                setDateFrom(
+                  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split("T")[0]
+                );
+                setDateTo(new Date().toISOString().split("T")[0]);
+                setStatusFilter("");
+              }}
+              sx={{ ml: "auto" }}
+            >
+              Reset
+            </Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <TextField
+              label="From Date"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              label="To Date"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 200 }}
+            />
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                label="Status"
+              >
+                <MenuItem value="">All</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="confirmed">Confirmed</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+              </Select>
+            </FormControl>
+            <Button variant="contained" onClick={loadData} disabled={loading}>
+              Apply Filters
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
       <Card>
         <Tabs
           value={activeTab}
@@ -449,8 +591,19 @@ const AppointmentManagement: React.FC = () => {
 
         <CardContent>
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                p: 3,
+              }}
+            >
               <CircularProgress />
+              <Typography variant="body2" sx={{ mt: 2 }} color="text.secondary">
+                Loading appointments... This may take a moment for large
+                datasets.
+              </Typography>
             </Box>
           ) : (
             <>
@@ -498,8 +651,8 @@ const AppointmentManagement: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 2 }}
             />
-            <FormControl fullWidth>
-              <InputLabel>Assign Employees (Optional)</InputLabel>
+            <FormControl fullWidth required>
+              <InputLabel>Assign Employee *</InputLabel>
               <Select
                 multiple
                 value={approveForm.assigned_employees}
@@ -509,7 +662,7 @@ const AppointmentManagement: React.FC = () => {
                     assigned_employees: e.target.value as string[],
                   })
                 }
-                label="Assign Employees (Optional)"
+                label="Assign Employee *"
               >
                 {employees.map((emp) => (
                   <MenuItem key={emp.id} value={emp.id}>

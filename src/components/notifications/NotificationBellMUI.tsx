@@ -65,6 +65,8 @@ export function NotificationBellMUI() {
         return "primary";
       case "VEHICLE":
         return "success";
+      case "PROJECT":
+        return "warning";
       case "SYSTEM":
         return "secondary";
       default:
@@ -107,7 +109,12 @@ export function NotificationBellMUI() {
         PaperProps={{
           elevation: 3,
           sx: {
-            width: 400,
+            width: {
+              xs: "calc(100vw - 32px)",
+              sm: 400,
+              md: 480,
+            },
+            maxWidth: 480,
             maxHeight: 600,
             mt: 1.5,
             "& .MuiMenuItem-root": {
@@ -170,18 +177,20 @@ export function NotificationBellMUI() {
                     : "action.hover",
                   borderLeft: notification.read_at ? "none" : "4px solid",
                   borderLeftColor: "primary.main",
+                  overflow: "hidden",
                   "&:hover": {
                     bgcolor: "action.selected",
                   },
                 }}
               >
-                <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                   <Box
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "flex-start",
                       mb: 0.5,
+                      gap: 1,
                     }}
                   >
                     <Typography
@@ -189,7 +198,11 @@ export function NotificationBellMUI() {
                       sx={{
                         fontWeight: notification.read_at ? "normal" : "bold",
                         flex: 1,
-                        mr: 1,
+                        minWidth: 0,
+                        maxWidth: "calc(100% - 40px)",
+                        wordBreak: "break-word",
+                        overflowWrap: "break-word",
+                        whiteSpace: "normal",
                       }}
                     >
                       {notification.message}
@@ -197,7 +210,11 @@ export function NotificationBellMUI() {
                     <IconButton
                       size="small"
                       onClick={(e) => handleDelete(notification.id, e)}
-                      sx={{ ml: 1 }}
+                      sx={{
+                        flexShrink: 0,
+                        ml: "auto",
+                        alignSelf: "flex-start",
+                      }}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import {
   Box,
   Card,
@@ -7,7 +7,6 @@ import {
   AppBar,
   Toolbar,
   Button,
-  CircularProgress,
   Alert,
   Drawer,
   List,
@@ -34,24 +33,67 @@ import {
   type DashboardStats,
 } from "../../services/adminService";
 import { logout } from "../../services/authService";
-import AdminDashboard from "../../pages/AdminDashboard";
-import AppointmentManagement from "./AppointmentManagement";
-import ProjectManagement from "./ProjectManagement";
+import { getUserFromToken } from "../../services/authService";
+import { NotificationProvider } from "../../contexts/NotificationContext";
+import { NotificationBellMUI } from "../notifications/NotificationBellMUI";
+import LoadingSpinner from "../LoadingSpinner";
+
+// Lazy load heavy components
+const AdminDashboard = lazy(() => import("../../pages/AdminDashboard"));
+const AppointmentManagement = lazy(() => import("./AppointmentManagement"));
+const ProjectManagement = lazy(() => import("./ProjectManagement"));
 
 const DRAWER_WIDTH = 240;
+const STATS_CACHE_KEY = "admin_dashboard_stats";
+const STATS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
 const EnhancedAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
-    null
+    () => {
+      // Initialize from cache if available
+      const cached = localStorage.getItem(STATS_CACHE_KEY);
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          if (Date.now() - timestamp < STATS_CACHE_DURATION) {
+            return data;
+          }
+        } catch (e) {
+          console.error("Error parsing cached stats:", e);
+        }
+      }
+      return null;
+    }
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get user information from JWT token for notifications
+  const user = getUserFromToken();
+  const userId = user?.id || null;
+
   useEffect(() => {
-    loadDashboardStats();
+    // Only fetch if cache is expired or doesn't exist
+    const cached = localStorage.getItem(STATS_CACHE_KEY);
+    let shouldFetch = true;
+
+    if (cached) {
+      try {
+        const { timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < STATS_CACHE_DURATION) {
+          shouldFetch = false;
+        }
+      } catch (e) {
+        console.error("Error checking cache:", e);
+      }
+    }
+
+    if (shouldFetch) {
+      loadDashboardStats();
+    }
   }, []);
 
   const loadDashboardStats = async () => {
@@ -59,11 +101,32 @@ const EnhancedAdminDashboard: React.FC = () => {
     try {
       const stats = await getDashboardStats();
       setDashboardStats(stats);
+
+      // Cache the stats with timestamp
+      localStorage.setItem(
+        STATS_CACHE_KEY,
+        JSON.stringify({
+          data: stats,
+          timestamp: Date.now(),
+        })
+      );
+
       setError(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load dashboard stats"
       );
+
+      // Try to use cached data on error
+      const cached = localStorage.getItem(STATS_CACHE_KEY);
+      if (cached) {
+        try {
+          const { data } = JSON.parse(cached);
+          setDashboardStats(data);
+        } catch (e) {
+          console.error("Error using cached stats:", e);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -406,108 +469,120 @@ const EnhancedAdminDashboard: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems[activeTab]?.label || "Dashboard"}
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<ExitToApp />}
-            onClick={handleLogout}
-            sx={{ display: { xs: "none", sm: "inline-flex" } }}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Box
-        component="nav"
-        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
-      >
-        {/* Mobile drawer */}
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
+    <NotificationProvider userId={userId}>
+      <Box sx={{ display: "flex", minHeight: "100vh" }}>
+        <AppBar
+          position="fixed"
           sx={{
-            display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-            },
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+            ml: { sm: `${DRAWER_WIDTH}px` },
           }}
         >
-          {drawer}
-        </Drawer>
-        {/* Desktop drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: DRAWER_WIDTH,
-            },
-          }}
-          open
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: "none" } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              sx={{ flexGrow: 1 }}
+            >
+              {menuItems[activeTab]?.label || "Dashboard"}
+            </Typography>
+            <NotificationBellMUI />
+            <Button
+              color="inherit"
+              startIcon={<ExitToApp />}
+              onClick={handleLogout}
+              sx={{ display: { xs: "none", sm: "inline-flex" }, ml: 1 }}
+            >
+              Logout
+            </Button>
+          </Toolbar>
+        </AppBar>
+
+        <Box
+          component="nav"
+          sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
         >
-          {drawer}
-        </Drawer>
+          {/* Mobile drawer */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true, // Better open performance on mobile.
+            }}
+            sx={{
+              display: { xs: "block", sm: "none" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+          {/* Desktop drawer */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: "none", sm: "block" },
+              "& .MuiDrawer-paper": {
+                boxSizing: "border-box",
+                width: DRAWER_WIDTH,
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: 3,
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          }}
+        >
+          <Toolbar />
+
+          {error && (
+            <Alert
+              severity="error"
+              onClose={() => setError(null)}
+              sx={{ mb: 2 }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          {loading ? (
+            <LoadingSpinner message="Loading dashboard stats..." />
+          ) : (
+            <Suspense
+              fallback={<LoadingSpinner message="Loading section..." />}
+            >
+              {activeTab === 0 && renderOverview()}
+              {activeTab === 1 && <AdminDashboard />}
+              {activeTab === 2 && <AppointmentManagement />}
+              {activeTab === 3 && renderProjectManagement()}
+              {activeTab === 4 && renderVehicleManagement()}
+              {activeTab === 5 && renderEmployeeWorkload()}
+            </Suspense>
+          )}
+        </Box>
       </Box>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-        }}
-      >
-        <Toolbar />
-
-        {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            {activeTab === 0 && renderOverview()}
-            {activeTab === 1 && <AdminDashboard />}
-            {activeTab === 2 && <AppointmentManagement />}
-            {activeTab === 3 && renderProjectManagement()}
-            {activeTab === 4 && renderVehicleManagement()}
-            {activeTab === 5 && renderEmployeeWorkload()}
-          </>
-        )}
-      </Box>
-    </Box>
+    </NotificationProvider>
   );
 };
 

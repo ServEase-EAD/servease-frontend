@@ -31,30 +31,35 @@ import {
   Close as CloseIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
-import { 
-  getProjects, 
-  createProject, 
-  updateProject, 
+import {
+  getProjects,
+  createProject,
+  updateProject,
   deleteProject,
   type Project,
-  type CreateProjectData
+  type CreateProjectData,
 } from "../../services/projectService";
-import { 
-  getVehicles, 
-  type Vehicle 
-} from "../../services/vehicleService";
+import { getVehicles, type Vehicle } from "../../services/vehicleService";
 
-const ProjectsSection: React.FC = () => {
+interface ProjectsSectionProps {
+  openCreateDialog?: boolean;
+  onDialogClose?: () => void;
+}
+
+const ProjectsSection: React.FC<ProjectsSectionProps> = ({
+  openCreateDialog = false,
+  onDialogClose,
+}) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openCreateDialogState, setOpenCreateDialogState] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleMap, setVehicleMap] = useState<Map<string, Vehicle>>(new Map());
-  
+
   // Snackbar states
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -65,7 +70,7 @@ const ProjectsSection: React.FC = () => {
     message: "",
     severity: "info",
   });
-  
+
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     open: boolean;
     projectId: string | null;
@@ -82,12 +87,23 @@ const ProjectsSection: React.FC = () => {
     expected_completion_date: "",
   });
 
+  // Handle opening create dialog from props
+  useEffect(() => {
+    if (openCreateDialog) {
+      setOpenCreateDialogState(true);
+      onDialogClose?.();
+    }
+  }, [openCreateDialog, onDialogClose]);
+
   useEffect(() => {
     // Load both projects and vehicles in parallel for better performance
     Promise.all([fetchProjects(), fetchVehicles()]);
   }, []);
 
-  const showSnackbar = (message: string, severity: "success" | "error" | "warning" | "info") => {
+  const showSnackbar = (
+    message: string,
+    severity: "success" | "error" | "warning" | "info"
+  ) => {
     setSnackbar({ open: true, message, severity });
   };
 
@@ -98,18 +114,27 @@ const ProjectsSection: React.FC = () => {
   const validateForm = (): boolean => {
     // Check title length
     if (formData.title.length < 3) {
-      showSnackbar("Request title must be at least 3 characters long", "warning");
+      showSnackbar(
+        "Request title must be at least 3 characters long",
+        "warning"
+      );
       return false;
     }
 
     // Check description length
     if (formData.description.length < 10) {
-      showSnackbar("Modification details must be at least 10 characters long", "warning");
+      showSnackbar(
+        "Modification details must be at least 10 characters long",
+        "warning"
+      );
       return false;
     }
 
     if (formData.description.length > 1000) {
-      showSnackbar("Modification details cannot exceed 1000 characters", "warning");
+      showSnackbar(
+        "Modification details cannot exceed 1000 characters",
+        "warning"
+      );
       return false;
     }
 
@@ -120,7 +145,10 @@ const ProjectsSection: React.FC = () => {
     oneYearFromNow.setDate(today.getDate() + 365);
 
     if (selectedDate > oneYearFromNow) {
-      showSnackbar("Expected completion date cannot be more than 1 year (365 days) from today", "warning");
+      showSnackbar(
+        "Expected completion date cannot be more than 1 year (365 days) from today",
+        "warning"
+      );
       return false;
     }
 
@@ -141,7 +169,11 @@ const ProjectsSection: React.FC = () => {
       setError(null);
     } catch (err) {
       console.error("Error fetching modification requests:", err);
-      setError(err instanceof Error ? err.message : "Failed to load modification requests");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load modification requests"
+      );
       setProjects([]);
     } finally {
       setLoading(false);
@@ -152,7 +184,7 @@ const ProjectsSection: React.FC = () => {
     try {
       const vehicleList = await getVehicles();
       setVehicles(vehicleList);
-      
+
       // Create vehicle map for easy lookup
       const map = new Map<string, Vehicle>();
       vehicleList.forEach((vehicle: Vehicle) => {
@@ -181,13 +213,17 @@ const ProjectsSection: React.FC = () => {
     try {
       await createProject(formData);
       await fetchProjects();
-      setOpenCreateDialog(false);
+      setOpenCreateDialogState(false);
       resetForm();
       setError(null);
       showSnackbar("Modification request created successfully!", "success");
     } catch (err) {
       console.error("Error creating modification request:", err);
-      setError(err instanceof Error ? err.message : "Failed to create modification request");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create modification request"
+      );
     }
   };
 
@@ -206,7 +242,7 @@ const ProjectsSection: React.FC = () => {
         description: formData.description,
         expected_completion_date: formData.expected_completion_date,
       });
-      
+
       await fetchProjects();
       setOpenEditDialog(false);
       resetForm();
@@ -215,7 +251,11 @@ const ProjectsSection: React.FC = () => {
       showSnackbar("Modification request updated successfully!", "success");
     } catch (err) {
       console.error("Error updating modification request:", err);
-      setError(err instanceof Error ? err.message : "Failed to update modification request");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update modification request"
+      );
     }
   };
 
@@ -234,7 +274,11 @@ const ProjectsSection: React.FC = () => {
       showSnackbar("Modification request deleted successfully!", "success");
     } catch (err) {
       console.error("Error deleting modification request:", err);
-      setError(err instanceof Error ? err.message : "Failed to delete modification request");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete modification request"
+      );
       setDeleteConfirmation({ open: false, projectId: null });
     }
   };
@@ -250,7 +294,7 @@ const ProjectsSection: React.FC = () => {
 
   const openCreateForm = () => {
     resetForm();
-    setOpenCreateDialog(true);
+    setOpenCreateDialogState(true);
   };
 
   const openEditForm = (project: Project) => {
@@ -270,7 +314,16 @@ const ProjectsSection: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: Record<string, "default" | "primary" | "secondary" | "error" | "warning" | "info" | "success"> = {
+    const colors: Record<
+      string,
+      | "default"
+      | "primary"
+      | "secondary"
+      | "error"
+      | "warning"
+      | "info"
+      | "success"
+    > = {
       accepted: "info",
       cancelled: "error",
       not_started: "default",
@@ -304,21 +357,27 @@ const ProjectsSection: React.FC = () => {
   return (
     <Box sx={{ p: 3, backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
       {/* Header Section */}
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center",
-        mb: 3,
-        p: 3,
-        backgroundColor: "white",
-        borderRadius: 2,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-        border: "1px solid #e0e0e0"
-      }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+          p: 3,
+          backgroundColor: "white",
+          borderRadius: 2,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          border: "1px solid #e0e0e0",
+        }}
+      >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <BuildIcon sx={{ fontSize: 40, color: "#FF4D00" }} />
           <Box>
-            <Typography variant="h6" component="h2" sx={{ color: "#333", fontWeight: 600 }}>
+            <Typography
+              variant="h6"
+              component="h2"
+              sx={{ color: "#333", fontWeight: 600 }}
+            >
               My Modification Requests
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -350,15 +409,15 @@ const ProjectsSection: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <Alert 
-          severity="error" 
-          sx={{ 
+        <Alert
+          severity="error"
+          sx={{
             mb: 3,
             backgroundColor: "white",
             border: "1px solid #ffcdd2",
             borderRadius: 1,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-          }} 
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
           onClose={() => setError(null)}
         >
           {error}
@@ -367,14 +426,16 @@ const ProjectsSection: React.FC = () => {
 
       {/* Main Content */}
       {projects.length === 0 ? (
-        <Box sx={{
-          backgroundColor: "white",
-          borderRadius: 2,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          border: "1px solid #e0e0e0",
-          p: 6,
-          textAlign: "center"
-        }}>
+        <Box
+          sx={{
+            backgroundColor: "white",
+            borderRadius: 2,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            border: "1px solid #e0e0e0",
+            p: 6,
+            textAlign: "center",
+          }}
+        >
           <BuildIcon sx={{ fontSize: 80, color: "#ccc", mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No modification requests yet
@@ -402,11 +463,13 @@ const ProjectsSection: React.FC = () => {
           </Button>
         </Box>
       ) : (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-          gap: 3 
-        }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+            gap: 3,
+          }}
+        >
           {projects.map((project) => (
             <Card
               key={project.project_id}
@@ -426,107 +489,140 @@ const ProjectsSection: React.FC = () => {
                 },
               }}
             >
-                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-                    <Typography
-                        variant="subtitle2"
-                        component="h4"
-                        sx={{
-                            flexGrow: 1,
-                            pr: 1,
-                            fontSize: "1rem", // Custom size for "h7"
-                            fontWeight: 600,
-                            letterSpacing: 0.1,
-                            color: "#222",
-                        }}
-                    >
-                        {project.title}
-                    </Typography>
-                    <Chip
-                      label={getStatusLabel(project.status)}
-                      color={getStatusColor(project.status)}
-                      size="small"
-                    />
-                  </Box>
-
+              <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 2,
+                  }}
+                >
                   <Typography
-                    variant="body2"
-                    color="text.secondary"
+                    variant="subtitle2"
+                    component="h4"
                     sx={{
-                      mb: 2,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      minHeight: "60px",
+                      flexGrow: 1,
+                      pr: 1,
+                      fontSize: "1rem", // Custom size for "h7"
+                      fontWeight: 600,
+                      letterSpacing: 0.1,
+                      color: "#222",
                     }}
                   >
-                    {project.description}
+                    {project.title}
                   </Typography>
+                  <Chip
+                    label={getStatusLabel(project.status)}
+                    color={getStatusColor(project.status)}
+                    size="small"
+                  />
+                </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    mb: 2,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    minHeight: "60px",
+                  }}
+                >
+                  {project.description}
+                </Typography>
 
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <VehicleIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {getVehicleDisplay(project.vehicle)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <CalendarIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Due: {new Date(project.expected_completion_date).toLocaleDateString()}
-                      </Typography>
-                    </Box>
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <VehicleIcon
+                      sx={{ fontSize: 18, color: "text.secondary" }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      {getVehicleDisplay(project.vehicle)}
+                    </Typography>
                   </Box>
-                </CardContent>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CalendarIcon
+                      sx={{ fontSize: 18, color: "text.secondary" }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Due:{" "}
+                      {new Date(
+                        project.expected_completion_date
+                      ).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
 
-                <Divider />
+              <Divider />
 
-                <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1, backgroundColor: "#f9f9f9" }}>
-                  <Tooltip title="View Details">
-                    <IconButton 
-                      size="small" 
-                      onClick={() => openViewForm(project)}
-                      sx={{ 
+              <Box
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 1,
+                  backgroundColor: "#f9f9f9",
+                }}
+              >
+                <Tooltip title="View Details">
+                  <IconButton
+                    size="small"
+                    onClick={() => openViewForm(project)}
+                    sx={{
+                      color: "#666",
+                      "&:hover": {
+                        color: "#FF4D00",
+                        backgroundColor: "rgba(255, 77, 0, 0.08)",
+                      },
+                    }}
+                  >
+                    <ViewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {project.status !== "in_progress" && (
+                  <Tooltip title="Edit Request">
+                    <IconButton
+                      size="small"
+                      onClick={() => openEditForm(project)}
+                      sx={{
                         color: "#666",
-                        "&:hover": { color: "#FF4D00", backgroundColor: "rgba(255, 77, 0, 0.08)" }
+                        "&:hover": {
+                          color: "#FF4D00",
+                          backgroundColor: "rgba(255, 77, 0, 0.08)",
+                        },
                       }}
                     >
-                      <ViewIcon fontSize="small" />
+                      <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  {project.status !== "in_progress" && (
-                    <Tooltip title="Edit Request">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => openEditForm(project)}
-                        sx={{ 
-                          color: "#666",
-                          "&:hover": { color: "#FF4D00", backgroundColor: "rgba(255, 77, 0, 0.08)" }
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                  {["not_started", "cancelled", "on_hold"].includes(project.status) && (
-                    <Tooltip title="Delete Request">
-                      <IconButton
-                        size="small"
-                        onClick={() => openDeleteConfirmation(project.project_id)}
-                        sx={{ 
-                          color: "#666",
-                          "&:hover": { color: "#d32f2f", backgroundColor: "rgba(211, 47, 47, 0.08)" }
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Box>
-              </Card>
+                )}
+                {["not_started", "cancelled", "on_hold"].includes(
+                  project.status
+                ) && (
+                  <Tooltip title="Delete Request">
+                    <IconButton
+                      size="small"
+                      onClick={() => openDeleteConfirmation(project.project_id)}
+                      sx={{
+                        color: "#666",
+                        "&:hover": {
+                          color: "#d32f2f",
+                          backgroundColor: "rgba(211, 47, 47, 0.08)",
+                        },
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </Card>
           ))}
         </Box>
       )}
@@ -536,7 +632,7 @@ const ProjectsSection: React.FC = () => {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
@@ -557,12 +653,15 @@ const ProjectsSection: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this modification request? This action cannot be undone.
+            Are you sure you want to delete this modification request? This
+            action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
           <Button
-            onClick={() => setDeleteConfirmation({ open: false, projectId: null })}
+            onClick={() =>
+              setDeleteConfirmation({ open: false, projectId: null })
+            }
             variant="outlined"
             sx={{ borderColor: "#ddd", color: "#666" }}
           >
@@ -580,34 +679,48 @@ const ProjectsSection: React.FC = () => {
       </Dialog>
 
       {/* Create Modification Request Dialog */}
-      <Dialog 
-        open={openCreateDialog} 
-        onClose={() => setOpenCreateDialog(false)} 
-        maxWidth="sm" 
+      <Dialog
+        open={openCreateDialogState}
+        onClose={() => setOpenCreateDialogState(false)}
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
-          }
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          },
         }}
       >
         <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>Create New Modification Request</Typography>
-            <IconButton onClick={() => setOpenCreateDialog(false)} size="small" sx={{ color: "#999" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>
+              Create New Modification Request
+            </Typography>
+            <IconButton
+              onClick={() => setOpenCreateDialogState(false)}
+              size="small"
+              sx={{ color: "#999" }}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ px: 3, py: 2 }}>
-            <br />
+          <br />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <TextField
               select
               label="Vehicle"
               value={formData.vehicle}
-              onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, vehicle: e.target.value })
+              }
               fullWidth
               required
               helperText="Select the vehicle for this modification request"
@@ -639,7 +752,9 @@ const ProjectsSection: React.FC = () => {
             <TextField
               label="Request Title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               fullWidth
               required
               multiline
@@ -670,7 +785,9 @@ const ProjectsSection: React.FC = () => {
             <TextField
               label="Modification Details"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               fullWidth
               required
               multiline
@@ -695,13 +812,20 @@ const ProjectsSection: React.FC = () => {
               label="Expected Completion Date"
               type="date"
               value={formData.expected_completion_date}
-              onChange={(e) => setFormData({ ...formData, expected_completion_date: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  expected_completion_date: e.target.value,
+                })
+              }
               fullWidth
               required
               InputLabelProps={{ shrink: true }}
               inputProps={{
                 min: new Date().toISOString().split("T")[0],
-                max: new Date(new Date().setDate(new Date().getDate() + 365)).toISOString().split("T")[0],
+                max: new Date(new Date().setDate(new Date().getDate() + 365))
+                  .toISOString()
+                  .split("T")[0],
               }}
               helperText="Maximum 1 year (365 days) from today"
               sx={{
@@ -721,15 +845,15 @@ const ProjectsSection: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button 
-            onClick={() => setOpenCreateDialog(false)} 
+          <Button
+            onClick={() => setOpenCreateDialogState(false)}
             variant="outlined"
-            sx={{ 
-              borderColor: "#ddd", 
+            sx={{
+              borderColor: "#ddd",
               color: "#666",
               px: 3,
               py: 1,
-              borderRadius: 1
+              borderRadius: 1,
             }}
           >
             Cancel
@@ -755,7 +879,7 @@ const ProjectsSection: React.FC = () => {
               },
               "&:disabled": {
                 backgroundColor: "#ccc",
-              }
+              },
             }}
           >
             Create Request
@@ -764,34 +888,48 @@ const ProjectsSection: React.FC = () => {
       </Dialog>
 
       {/* Edit Modification Request Dialog */}
-      <Dialog 
-        open={openEditDialog} 
-        onClose={() => setOpenEditDialog(false)} 
-        maxWidth="sm" 
+      <Dialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
-          }
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          },
         }}
       >
         <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>Edit Modification Request</Typography>
-            <IconButton onClick={() => setOpenEditDialog(false)} size="small" sx={{ color: "#999" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>
+              Edit Modification Request
+            </Typography>
+            <IconButton
+              onClick={() => setOpenEditDialog(false)}
+              size="small"
+              sx={{ color: "#999" }}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ px: 3, py: 2 }}>
-            <br />
+          <br />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <TextField
               select
               label="Vehicle"
               value={formData.vehicle}
-              onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, vehicle: e.target.value })
+              }
               fullWidth
               required
               helperText="Select the vehicle for this modification request"
@@ -823,7 +961,9 @@ const ProjectsSection: React.FC = () => {
             <TextField
               label="Request Title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               fullWidth
               required
               multiline
@@ -855,7 +995,9 @@ const ProjectsSection: React.FC = () => {
             <TextField
               label="Modification Details"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               fullWidth
               required
               multiline
@@ -880,13 +1022,20 @@ const ProjectsSection: React.FC = () => {
               label="Expected Completion Date"
               type="date"
               value={formData.expected_completion_date}
-              onChange={(e) => setFormData({ ...formData, expected_completion_date: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  expected_completion_date: e.target.value,
+                })
+              }
               fullWidth
               required
               InputLabelProps={{ shrink: true }}
               inputProps={{
                 min: new Date().toISOString().split("T")[0],
-                max: new Date(new Date().setDate(new Date().getDate() + 365)).toISOString().split("T")[0],
+                max: new Date(new Date().setDate(new Date().getDate() + 365))
+                  .toISOString()
+                  .split("T")[0],
               }}
               helperText="Maximum 1 year (365 days) from today"
               sx={{
@@ -906,15 +1055,15 @@ const ProjectsSection: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button 
-            onClick={() => setOpenEditDialog(false)} 
+          <Button
+            onClick={() => setOpenEditDialog(false)}
             variant="outlined"
-            sx={{ 
-              borderColor: "#ddd", 
+            sx={{
+              borderColor: "#ddd",
               color: "#666",
               px: 3,
               py: 1,
-              borderRadius: 1
+              borderRadius: 1,
             }}
           >
             Cancel
@@ -940,7 +1089,7 @@ const ProjectsSection: React.FC = () => {
               },
               "&:disabled": {
                 backgroundColor: "#ccc",
-              }
+              },
             }}
           >
             Update Request
@@ -957,14 +1106,26 @@ const ProjectsSection: React.FC = () => {
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
-          }
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          },
         }}
       >
         <DialogTitle sx={{ pb: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>Modification Request Details</Typography>
-            <IconButton onClick={() => setOpenViewDialog(false)} size="small" sx={{ color: "#999" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#333" }}>
+              Modification Request Details
+            </Typography>
+            <IconButton
+              onClick={() => setOpenViewDialog(false)}
+              size="small"
+              sx={{ color: "#999" }}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
@@ -973,7 +1134,11 @@ const ProjectsSection: React.FC = () => {
           {selectedProject && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Request Title
                 </Typography>
                 <Typography
@@ -990,7 +1155,11 @@ const ProjectsSection: React.FC = () => {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Status
                 </Typography>
                 <Chip
@@ -1001,31 +1170,59 @@ const ProjectsSection: React.FC = () => {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Modification Details
                 </Typography>
                 <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
-                  <Typography variant="body1">{selectedProject.description}</Typography>
+                  <Typography variant="body1">
+                    {selectedProject.description}
+                  </Typography>
                 </Paper>
               </Box>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
+                }}
+              >
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Vehicle
                   </Typography>
-                  <Typography variant="body1">{getVehicleDisplay(selectedProject.vehicle)}</Typography>
+                  <Typography variant="body1">
+                    {getVehicleDisplay(selectedProject.vehicle)}
+                  </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Expected Completion
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(selectedProject.expected_completion_date).toLocaleDateString()}
+                    {new Date(
+                      selectedProject.expected_completion_date
+                    ).toLocaleDateString()}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Created At
                   </Typography>
                   <Typography variant="body1">
@@ -1033,7 +1230,11 @@ const ProjectsSection: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Last Updated
                   </Typography>
                   <Typography variant="body1">
@@ -1045,8 +1246,8 @@ const ProjectsSection: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setOpenViewDialog(false)} 
+          <Button
+            onClick={() => setOpenViewDialog(false)}
             variant="contained"
             sx={{
               backgroundColor: "#FF4D00",
