@@ -641,11 +641,6 @@ const MyTasks: React.FC = () => {
             color: "primary.main",
           },
           {
-            label: "Pending",
-            value: totalStats.pending.toString(),
-            color: "error.main",
-          },
-          {
             label: "In Progress",
             value: totalStats.in_progress.toString(),
             color: "warning.main",
@@ -659,7 +654,7 @@ const MyTasks: React.FC = () => {
           <Box
             key={i}
             sx={{
-              flex: { xs: "0 0 calc(50% - 12px)", sm: "0 0 calc(25% - 18px)" },
+              flex: { xs: "0 0 calc(50% - 12px)", sm: "0 0 calc(33.333% - 16px)" },
             }}
           >
             <Card>
