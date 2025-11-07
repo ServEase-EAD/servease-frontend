@@ -210,7 +210,7 @@ export function NotificationBellMUI() {
                     <IconButton
                       size="small"
                       onClick={(e) => handleDelete(notification.id, e)}
-                      sx={{ 
+                      sx={{
                         flexShrink: 0,
                         ml: "auto",
                         alignSelf: "flex-start",

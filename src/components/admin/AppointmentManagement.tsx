@@ -294,20 +294,30 @@ const AppointmentManagement: React.FC = () => {
             ) : (
               appointmentList.map((appointment) => {
                 // Helper function to get vehicle display name
-                const getVehicleDisplayName = (vehicleDetails: string | VehicleDetails | undefined): string => {
+                const getVehicleDisplayName = (
+                  vehicleDetails: string | VehicleDetails | undefined
+                ): string => {
                   if (!vehicleDetails) return appointment.vehicle_id;
-                  if (typeof vehicleDetails === 'string') return vehicleDetails;
+                  if (typeof vehicleDetails === "string") return vehicleDetails;
                   // If it's an object, use display_name or construct from make/model/year
-                  return vehicleDetails.display_name || `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`;
+                  return (
+                    vehicleDetails.display_name ||
+                    `${vehicleDetails.make} ${vehicleDetails.model} ${vehicleDetails.year}`
+                  );
                 };
 
                 return (
                   <TableRow key={appointment.id}>
                     <TableCell>
-                      {appointment.scheduled_date} at {appointment.scheduled_time}
+                      {appointment.scheduled_date} at{" "}
+                      {appointment.scheduled_time}
                     </TableCell>
-                    <TableCell>{appointment.customer_name || appointment.customer_id}</TableCell>
-                    <TableCell>{getVehicleDisplayName(appointment.vehicle_details)}</TableCell>
+                    <TableCell>
+                      {appointment.customer_name || appointment.customer_id}
+                    </TableCell>
+                    <TableCell>
+                      {getVehicleDisplayName(appointment.vehicle_details)}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={appointment.status}
