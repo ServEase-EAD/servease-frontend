@@ -17,9 +17,10 @@ import {
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
 } from "@mui/icons-material";
-import type { Appointment, Vehicle, Project } from "../../types";
+import type { Appointment, Vehicle, Project, Customer } from "../../types";
 import apiClient from "../../services/apiService";
 import { API_ENDPOINTS } from "../../config/api.config";
+import { getCustomerAppointments } from "../../services/appointmentService";
 
 interface DashboardSectionProps {
   customer: Customer | null;
@@ -66,17 +67,15 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({ customer }) => {
 
         // Fetch recent appointments (last 3)
         try {
-          const appointmentsResponse = await apiClient.get(
-            `${API_ENDPOINTS.APPOINTMENTS.LIST}?customer_id=${customerId}&ordering=-scheduled_date&limit=3`
-          );
-          console.log("Appointments response:", appointmentsResponse.data);
-          
-          // Handle both paginated and non-paginated responses
-          const appointmentsData = Array.isArray(appointmentsResponse.data) 
-            ? appointmentsResponse.data 
-            : (appointmentsResponse.data?.results || []);
-          
-          setRecentAppointments(appointmentsData.slice(0, 3));
+          const appointmentsData = await getCustomerAppointments(customerId);
+
+          const sortedAppointments = [...appointmentsData].sort((a, b) => {
+            const dateA = new Date(`${a.scheduled_date}T${a.scheduled_time}`);
+            const dateB = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
+            return dateB.getTime() - dateA.getTime();
+          });
+
+          setRecentAppointments(sortedAppointments.slice(0, 3));
         } catch (err) {
           console.error("Error fetching appointments:", err);
           setRecentAppointments([]);
