@@ -2,8 +2,11 @@
  * Custom hook for managing chatbot functionality
  */
 import { useState, useCallback, useEffect } from "react";
-import type { ChatMessage, ChatSession, ChatModel } from "../types";
+import type { ChatMessage, ChatSession } from "../types";
 import * as chatbotService from "../services/chatbotService";
+
+// Static model - always use gemini-2.5-flash
+const STATIC_MODEL = "gemini-2.5-flash" as const;
 
 interface UseChatbotReturn {
   // State
@@ -13,7 +16,6 @@ interface UseChatbotReturn {
   isLoading: boolean;
   isSending: boolean;
   error: string | null;
-  selectedModel: ChatModel;
 
   // Actions
   sendMessage: (message: string) => Promise<void>;
@@ -22,7 +24,6 @@ interface UseChatbotReturn {
   startNewSession: () => void;
   deleteSession: (sessionId: string) => Promise<void>;
   clearSession: (sessionId: string) => Promise<void>;
-  setSelectedModel: (model: ChatModel) => void;
   clearError: () => void;
 }
 
@@ -34,7 +35,6 @@ export const useChatbot = (): UseChatbotReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<ChatModel>("gemini-2.5-flash");
 
   /**
    * Load all chat sessions
@@ -98,7 +98,7 @@ export const useChatbot = (): UseChatbotReturn => {
         const response = await chatbotService.sendMessage(
           message,
           currentSessionId || undefined,
-          selectedModel
+          STATIC_MODEL
         );
 
         // Update session ID if this was a new session
@@ -125,7 +125,7 @@ export const useChatbot = (): UseChatbotReturn => {
         setIsSending(false);
       }
     },
-    [currentSessionId, selectedModel]
+    [currentSessionId]
   );
 
   /**
@@ -205,7 +205,6 @@ export const useChatbot = (): UseChatbotReturn => {
     isLoading,
     isSending,
     error,
-    selectedModel,
 
     // Actions
     sendMessage,
@@ -214,7 +213,6 @@ export const useChatbot = (): UseChatbotReturn => {
     startNewSession,
     deleteSession,
     clearSession,
-    setSelectedModel,
     clearError,
   };
 };

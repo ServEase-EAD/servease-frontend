@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EnhancedAdminDashboard from "./components/admin/EnhancedAdminDashboard";
 import { ChatbotButton } from "./components/chatbot";
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
 // Temporary Home component until you create a proper one
@@ -33,12 +34,12 @@ const HomePage: React.FC = () => {
   return <Navigate to="/login" replace />;
 };
 
-function App() {
-  // Check if user is authenticated
-  const isAuthenticated = !!localStorage.getItem("token");
+function AppContent() {
+  // Use the useAuth hook for reactive authentication state
+  const { isAuthenticated } = useAuth();
 
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -73,6 +74,14 @@ function App() {
 
       {/* Chatbot Button - Available for all authenticated users */}
       {isAuthenticated && <ChatbotButton />}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }
