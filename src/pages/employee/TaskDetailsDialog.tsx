@@ -7,7 +7,6 @@ import {
   Typography,
   Box,
   Button,
-  Chip,
   Stack,
   Divider,
 } from "@mui/material";
@@ -50,37 +49,6 @@ interface TaskDetailsDialogProps {
   task: Task | null;
   onMarkAsNoShow?: (taskId: string) => void;
 }
-
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return "success";
-    case "in_progress":
-      return "warning";
-    case "confirmed":
-    case "not_started":
-      return "info";
-    case "no_show":
-      return "secondary";
-    case "pending":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
-const formatStatus = (status: string) => {
-  const map: Record<string, string> = {
-    pending: "Pending Confirmation",
-    confirmed: "Confirmed",
-    not_started: "Confirmed",
-    in_progress: "In Progress",
-    completed: "Completed",
-    cancelled: "Cancelled",
-    no_show: "No Show",
-  };
-  return map[status.toLowerCase()] || status;
-};
 
 const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
   open,
@@ -138,17 +106,6 @@ const TaskDetailsDialog: React.FC<TaskDetailsDialogProps> = ({
                 {task.scheduled_date} at {task.scheduled_time}
               </Typography>
             </Box>
-          </Box>
-          <Divider />
-
-          {/* Status */}
-          <Box>
-            <Typography variant="subtitle2">Status</Typography>
-            <Chip
-              label={formatStatus(task.status)}
-              color={getStatusColor(task.status) as any}
-              size="small"
-            />
           </Box>
           <Divider />
 

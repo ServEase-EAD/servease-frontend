@@ -545,21 +545,6 @@ const MyTasks: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "critical":
-        return "#ff0000";
-      case "high":
-        return "#ff4444";
-      case "medium":
-        return "#ffbb33";
-      case "low":
-        return "#00C851";
-      default:
-        return "#333333";
-    }
-  };
-
   const handleFilterChange = (event: SelectChangeEvent) => {
     setStatusFilter(event.target.value);
   };
@@ -828,22 +813,6 @@ const MyTasks: React.FC = () => {
                                 : "Project Task"}
                             </Typography>
                           </Box>
-                          {isThisTaskInProgress && (
-                            <Chip 
-                              label="IN PROGRESS" 
-                              size="small" 
-                              color="success" 
-                              sx={{ ml: 1, fontWeight: 'bold' }}
-                            />
-                          )}
-                          {isThisTaskPaused && (
-                            <Chip 
-                              label="PAUSED" 
-                              size="small" 
-                              color="warning" 
-                              sx={{ ml: 1, fontWeight: 'bold' }}
-                            />
-                          )}
                         </Box>
                       </TableCell>
                       <TableCell>{task.vehicle}</TableCell>
@@ -1036,40 +1005,6 @@ const MyTasks: React.FC = () => {
                         : new Date(selectedTask.dueDate).toLocaleDateString()}
                     </Typography>
                   </Box>
-                </Box>
-                <Divider />
-
-                {/* Priority (only for project tasks) */}
-                {selectedTask.type === "project" && (
-                  <>
-                    <Box>
-                      <Typography variant="subtitle2">Priority</Typography>
-                      <Typography
-                        sx={{
-                          color: getPriorityColor(
-                            (selectedTask.originalData as ProjectTask).priority
-                          ),
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {(selectedTask.originalData as ProjectTask).priority
-                          .charAt(0)
-                          .toUpperCase() +
-                          (selectedTask.originalData as ProjectTask).priority.slice(1)}
-                      </Typography>
-                    </Box>
-                    <Divider />
-                  </>
-                )}
-
-                {/* Status */}
-                <Box>
-                  <Typography variant="subtitle2">Status</Typography>
-                  <Chip
-                    label={formatStatus(selectedTask.status)}
-                    color={getStatusColor(selectedTask.status)}
-                    size="small"
-                  />
                 </Box>
                 <Divider />
 

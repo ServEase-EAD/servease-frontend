@@ -291,26 +291,6 @@ const ServiceRequests: React.FC = () => {
                 </Box>
                 <Divider />
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box>
-                    <Typography variant="subtitle2">Priority</Typography>
-                    <Typography sx={{ color: getPriorityColor(selectedTask.priority), fontWeight: 'bold' }}>
-                      {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Divider />
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box>
-                    <Typography variant="subtitle2">Status</Typography>
-                    <Chip
-                      label={selectedTask.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      color={getStatusColor(selectedTask.status) as any}
-                      size="small"
-                    />
-                  </Box>
-                </Box>
-                <Divider />
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AccessTimeIcon color="action" />
                   <Box>
                     <Typography variant="subtitle2">Created</Typography>
