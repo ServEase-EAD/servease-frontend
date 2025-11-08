@@ -20,7 +20,9 @@ import {
   Phone,
 } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import apiClient, { handleApiError } from "../services/apiService";
+import { API_ENDPOINTS } from "../config/api.config";
+import { saveTokens, getUserRole } from "../services/authService";
 
 const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
@@ -133,15 +135,42 @@ const SignUpPage: React.FC = () => {
         user_role: formData.user_role,
       };
 
-      const response = await axios.post(
-        "http://localhost:8001/api/v1/auth/register/",
+      // Make API call using centralized API client
+      const response = await apiClient.post(
+        API_ENDPOINTS.AUTH.REGISTER,
         payload
       );
       console.log("Sign up response:", response.data);
-      alert("Account created successfully!");
-      navigate("/login");
+
+      // Save tokens if provided (auto-login after registration)
+      if (response.data.tokens) {
+        const { tokens } = response.data;
+        saveTokens(tokens.access, tokens.refresh);
+
+        // Get user role from JWT token
+        const userRole = getUserRole();
+        console.log("Registration successful. User role:", userRole);
+
+        // Set a flag to indicate this is a new signup
+        localStorage.setItem("isNewSignup", "true");
+
+        // Redirect based on user role
+        if (userRole === "customer") {
+          navigate("/customer-dashboard");
+        } else if (userRole === "employee") {
+          navigate("/employee-dashboard");
+        } else if (userRole === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/");
+        }
+      } else {
+        // No auto-login, redirect to login page
+        alert("Account created successfully! Please log in.");
+        navigate("/login");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign up failed");
+      setError(handleApiError(err));
     } finally {
       setLoading(false);
     }
