@@ -70,6 +70,7 @@ const CustomerDashboard: React.FC = () => {
     createProfile,
     updateProfile,
     retryConnection,
+    clearProfile,
   } = useCustomer();
 
   // Automatically navigate to profile section if user has no profile and not already on profile tab
