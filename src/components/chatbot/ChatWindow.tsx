@@ -11,11 +11,6 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Divider,
   Tooltip,
 } from "@mui/material";
 import {
@@ -28,7 +23,6 @@ import {
 } from "@mui/icons-material";
 import { useChatbot } from "../../hooks/useChatbot";
 import { ChatMessage } from "./ChatMessage";
-import type { ChatModel } from "../../types";
 
 interface ChatWindowProps {
   onClose: () => void;
@@ -42,14 +36,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     isLoading,
     isSending,
     error,
-    selectedModel,
     sendMessage,
     loadSessions,
     loadSession,
     startNewSession,
     deleteSession,
     clearSession,
-    setSelectedModel,
     clearError,
   } = useChatbot();
 
@@ -256,30 +248,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
           </Box>
         </Box>
       )}
-
-      {/* Model Selection */}
-      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-        <FormControl fullWidth size="small">
-          <InputLabel>AI Model</InputLabel>
-          <Select
-            value={selectedModel}
-            label="AI Model"
-            onChange={(e) => setSelectedModel(e.target.value as ChatModel)}
-          >
-            <MenuItem value="gemini-2.5-flash">
-              Gemini 2.5 Flash (Fast, Free)
-            </MenuItem>
-            <MenuItem value="gemini-2.5-pro">
-              Gemini 2.5 Pro (Advanced)
-            </MenuItem>
-            <MenuItem value="gemini-2.0-flash-exp">
-              Gemini 2.0 Flash Experimental
-            </MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      <Divider />
 
       {/* Error Display */}
       {error && (
