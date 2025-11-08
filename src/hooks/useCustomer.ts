@@ -25,6 +25,24 @@ const CUSTOMER_CACHE_KEY = "customer_profile_cache";
 const PROFILE_CHECK_CACHE_KEY = "customer_profile_check_cache";
 const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
+// Helper function to get user-specific cache keys
+const getUserCacheKey = (baseKey: string, userId: string | undefined) => {
+  return userId ? `${baseKey}_${userId}` : baseKey;
+};
+
+// Helper function to clear all cache for any user
+const clearAllUserCaches = () => {
+  // Get all keys from localStorage
+  const allKeys = Object.keys(localStorage);
+  
+  // Remove all customer cache keys
+  allKeys.forEach(key => {
+    if (key.startsWith(CUSTOMER_CACHE_KEY) || key.startsWith(PROFILE_CHECK_CACHE_KEY)) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
 interface UseCustomerReturn {
   customer: Customer | null;
   loading: boolean;
@@ -36,12 +54,18 @@ interface UseCustomerReturn {
   refreshProfile: () => Promise<void>;
   checkProfileExists: () => Promise<void>;
   retryConnection: () => Promise<void>;
+  clearProfile: () => void;
 }
 
 export const useCustomer = (): UseCustomerReturn => {
+  const user = getUserFromToken();
+  const userId = user?.id;
+
   const [customer, setCustomer] = useState<Customer | null>(() => {
-    // Initialize from cache if available
-    const cached = localStorage.getItem(CUSTOMER_CACHE_KEY);
+    // Initialize from user-specific cache if available
+    if (!userId) return null;
+    
+    const cached = localStorage.getItem(getUserCacheKey(CUSTOMER_CACHE_KEY, userId));
     if (cached) {
       try {
         const { data, timestamp } = JSON.parse(cached);
@@ -54,11 +78,15 @@ export const useCustomer = (): UseCustomerReturn => {
     }
     return null;
   });
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const [hasProfile, setHasProfile] = useState(() => {
-    // Initialize from cache if available
-    const cached = localStorage.getItem(PROFILE_CHECK_CACHE_KEY);
+    // Initialize from user-specific cache if available
+    if (!userId) return false;
+    
+    const cached = localStorage.getItem(getUserCacheKey(PROFILE_CHECK_CACHE_KEY, userId));
     if (cached) {
       try {
         const { data, timestamp } = JSON.parse(cached);
@@ -71,9 +99,35 @@ export const useCustomer = (): UseCustomerReturn => {
     }
     return false;
   });
+  
   const [profileCheckLoading, setProfileCheckLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(userId);
 
-  const user = getUserFromToken();
+  // Effect to handle user changes and clear caches
+  useEffect(() => {
+    if (currentUserId !== userId) {
+      console.log("User changed from", currentUserId, "to", userId);
+      
+      // Clear all caches when user changes
+      clearAllUserCaches();
+      
+      // Reset all state
+      setCustomer(null);
+      setHasProfile(false);
+      setError(null);
+      setLoading(false);
+      setProfileCheckLoading(false);
+      
+      // Update current user
+      setCurrentUserId(userId);
+      
+      // If there's a new user, start fresh check
+      if (userId) {
+        console.log("Starting fresh profile check for new user:", userId);
+        setTimeout(() => checkProfileExists(), 0); // Use setTimeout to avoid React warnings
+      }
+    }
+  }, [userId, currentUserId]); // Add currentUserId to dependencies
 
   /**
    * Load customer profile
@@ -113,14 +167,16 @@ export const useCustomer = (): UseCustomerReturn => {
       setCustomer(profile);
       setHasProfile(true);
 
-      // Cache the profile with timestamp
-      localStorage.setItem(
-        CUSTOMER_CACHE_KEY,
-        JSON.stringify({
-          data: profile,
-          timestamp: Date.now(),
-        })
-      );
+      // Cache the profile with timestamp using user-specific key
+      if (userId) {
+        localStorage.setItem(
+          getUserCacheKey(CUSTOMER_CACHE_KEY, userId),
+          JSON.stringify({
+            data: profile,
+            timestamp: Date.now(),
+          })
+        );
+      }
     } catch (err) {
       console.error("Error loading profile:", err);
       const errorMessage =
@@ -191,14 +247,16 @@ export const useCustomer = (): UseCustomerReturn => {
       console.log("Profile check result:", result);
       setHasProfile(result.profile_exists);
 
-      // Cache the profile check result
-      localStorage.setItem(
-        PROFILE_CHECK_CACHE_KEY,
-        JSON.stringify({
-          data: result.profile_exists,
-          timestamp: Date.now(),
-        })
-      );
+      // Cache the profile check result using user-specific key
+      if (userId) {
+        localStorage.setItem(
+          getUserCacheKey(PROFILE_CHECK_CACHE_KEY, userId),
+          JSON.stringify({
+            data: result.profile_exists,
+            timestamp: Date.now(),
+          })
+        );
+      }
 
       if (result.profile_exists) {
         // Load the profile data
@@ -302,12 +360,28 @@ export const useCustomer = (): UseCustomerReturn => {
     await checkProfileExists();
   };
 
+  /**
+   * Clear profile data and cache
+   */
+  const clearProfile = () => {
+    console.log("Clearing profile data and cache for user:", userId);
+    setCustomer(null);
+    setHasProfile(false);
+    setError(null);
+    
+    // Clear user-specific caches
+    if (userId) {
+      localStorage.removeItem(getUserCacheKey(CUSTOMER_CACHE_KEY, userId));
+      localStorage.removeItem(getUserCacheKey(PROFILE_CHECK_CACHE_KEY, userId));
+    }
+  };
+
   // Initial profile check on mount
   useEffect(() => {
-    if (user) {
+    if (user && userId) {
       // Only fetch if cache is expired or doesn't exist
-      const profileCached = localStorage.getItem(CUSTOMER_CACHE_KEY);
-      const checkCached = localStorage.getItem(PROFILE_CHECK_CACHE_KEY);
+      const profileCached = localStorage.getItem(getUserCacheKey(CUSTOMER_CACHE_KEY, userId));
+      const checkCached = localStorage.getItem(getUserCacheKey(PROFILE_CHECK_CACHE_KEY, userId));
       let shouldFetch = true;
 
       if (profileCached && checkCached) {
@@ -328,11 +402,10 @@ export const useCustomer = (): UseCustomerReturn => {
       }
 
       if (shouldFetch) {
-        checkProfileExists();
+        setTimeout(() => checkProfileExists(), 0); // Use setTimeout to avoid React warnings
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, userId]); // Include userId in dependencies
 
   return {
     customer,
@@ -345,5 +418,6 @@ export const useCustomer = (): UseCustomerReturn => {
     refreshProfile,
     checkProfileExists,
     retryConnection,
+    clearProfile,
   };
 };
