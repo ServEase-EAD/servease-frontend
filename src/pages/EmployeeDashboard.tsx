@@ -1,8 +1,6 @@
 import React, { useState, lazy, Suspense } from "react";
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Button,
   AppBar,
@@ -159,76 +157,6 @@ const EmployeeDashboard: React.FC = () => {
                   </Button>
                 );
               })}
-            </Box>
-
-            {/* Status Cards */}
-            <Box sx={{ p: 2 }}>
-              <Card
-                elevation={0}
-                sx={{ mb: 2, bgcolor: "rgba(255, 77, 0, 0.05)" }}
-              >
-                <CardContent>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Work Summary
-                  </Typography>
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="body2" color="success.main">
-                      ✓ Employee Status: Active
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Role: Service Employee
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              <Card elevation={0} sx={{ bgcolor: "rgba(255, 77, 0, 0.05)" }}>
-                <CardContent>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Today's Overview
-                  </Typography>
-                  <Box sx={{ mt: 1 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        mb: 0.5,
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        Pending:
-                      </Typography>
-                      <Typography variant="body2" color="error.main">
-                        5
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        mb: 0.5,
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        Completed:
-                      </Typography>
-                      <Typography variant="body2" color="success.main">
-                        3
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{ display: "flex", justifyContent: "space-between" }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        New Requests:
-                      </Typography>
-                      <Typography variant="body2" color="primary.main">
-                        8
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
             </Box>
           </Box>
 
