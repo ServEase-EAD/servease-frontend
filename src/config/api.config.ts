@@ -9,7 +9,7 @@ export const TOKEN_STORAGE_KEY = "access_token";
 export const REFRESH_TOKEN_STORAGE_KEY = "refresh_token";
 
 // Request timeout
-export const REQUEST_TIMEOUT = 10000; // 10 seconds - reduced from 30 for faster failures
+export const REQUEST_TIMEOUT = 30000; // 30 seconds - increased to handle backend service communication
 
 // Specific timeout for endpoints that may take longer
 export const LONG_REQUEST_TIMEOUT = 30000; // 30 seconds for data-heavy endpoints

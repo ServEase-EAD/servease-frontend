@@ -17,7 +17,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
 } from "@mui/icons-material";
-import type { Appointment, Vehicle, Project } from "../../types";
+import type { Appointment, Vehicle, Project, Customer } from "../../types";
 import apiClient from "../../services/apiService";
 import { API_ENDPOINTS } from "../../config/api.config";
 
@@ -36,6 +36,24 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({ customer }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentCustomerId, setCurrentCustomerId] = useState<string | null>(null);
+
+  // Clear dashboard data when user changes
+  useEffect(() => {
+    const newCustomerId = customer?.user_id || customer?.id;
+    
+    if (currentCustomerId && newCustomerId && currentCustomerId !== newCustomerId) {
+      console.log("Customer changed from", currentCustomerId, "to", newCustomerId);
+      
+      // Clear all dashboard data
+      setRecentAppointments([]);
+      setVehicles([]);
+      setProjects([]);
+      setError(null);
+    }
+    
+    setCurrentCustomerId(newCustomerId || null);
+  }, [customer?.user_id, customer?.id, currentCustomerId]);
 
   // Debug: Log customer data on mount and changes
   useEffect(() => {

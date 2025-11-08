@@ -162,15 +162,40 @@ const MyTasks: React.FC = () => {
         return;
       }
 
-      // Fetch appointments assigned to this employee
-      const appointmentResponse = await apiClient.get(
-        `${API_ENDPOINTS.APPOINTMENTS.LIST}?employee_id=${employeeId}`
-      );
+      // Fetch appointments assigned to this employee with retry logic
+      let appointmentResponse;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          appointmentResponse = await apiClient.get(
+            `${API_ENDPOINTS.APPOINTMENTS.LIST}?employee_id=${employeeId}`,
+            {
+              timeout: retryCount === 0 ? 10000 : 20000 + (retryCount * 10000) // Increase timeout with retries
+            }
+          );
+          break; // Success, exit retry loop
+        } catch (error) {
+          retryCount++;
+          console.warn(`⚠️ Appointment fetch attempt ${retryCount} failed:`, error);
+          
+          if (retryCount > maxRetries) {
+            // If all retries failed, continue with empty appointments
+            console.error("⚠️ All appointment fetch retries failed, continuing with empty appointments");
+            appointmentResponse = { data: { results: [] } };
+            break;
+          }
+          
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
 
       // Fetch project tasks (already filtered by backend for logged-in employee)
       const projectTasksData = await getEmployeeTasks().catch(() => []);
 
-      const appointmentResults = appointmentResponse.data.results || [];
+      const appointmentResults = appointmentResponse?.data?.results || [];
       const appointments: AppointmentTask[] = appointmentResults.map(
         (task: Record<string, unknown>) => ({
           id: task.id as string,

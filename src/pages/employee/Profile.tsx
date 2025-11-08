@@ -158,14 +158,16 @@ const Profile: React.FC = () => {
     try {
       setIsLoading(true);
       const updateData = {
-        phone_number: profile.phoneNumber,
-        gender: profile.gender,
-        date_of_birth: profile.dateOfBirth,
-        address_line1: profile.addressLine1 || "",
-        address_line2: profile.addressLine2 || "",
-        city: profile.city || "",
-        postal_code: profile.postalCode || "",
+        phone_number: profile.phoneNumber?.trim() || null,
+        gender: profile.gender || null,
+        date_of_birth: profile.dateOfBirth?.trim() || null,
+        address_line1: profile.addressLine1?.trim() || "",
+        address_line2: profile.addressLine2?.trim() || "",
+        city: profile.city?.trim() || "",
+        postal_code: profile.postalCode?.trim() || "",
       };
+
+      console.log("Profile update data being sent:", updateData);
 
       await api.put(API_ENDPOINTS.EMPLOYEES.UPDATE_PROFILE, updateData);
       await fetchProfileData();

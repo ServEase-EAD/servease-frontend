@@ -191,8 +191,19 @@ export const getUserProfile = async (): Promise<any> => {
 };
 
 /**
- * Logout user by clearing tokens
+ * Logout user by clearing tokens and all related caches
  */
 export const logout = (): void => {
   clearTokens();
+  
+  // Clear all customer-related caches
+  const allKeys = Object.keys(localStorage);
+  allKeys.forEach(key => {
+    if (key.startsWith("customer_profile_cache") || 
+        key.startsWith("customer_profile_check_cache")) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  console.log("User logged out, all tokens and caches cleared");
 };
