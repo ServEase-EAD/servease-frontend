@@ -371,23 +371,6 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {/* AppBar */}
-      <AppBar position="static">
-        <Toolbar>
-          <DashboardIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Admin Dashboard
-          </Typography>
-          <Button
-            color="inherit"
-            startIcon={<ExitToApp />}
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
       {/* Main Content */}
       <Box sx={{ flexGrow: 1, p: 3 }}>
         {/* Alerts */}
